@@ -1,0 +1,284 @@
+﻿id	name	version	version_created
+3149	Achromatopsia	1.5	2022-09-21T07:10:55.626185Z
+221	Additional findings_Adult	1.130	2025-09-23T03:31:16.772309Z
+3302	Additional findings_Paediatric	0.278	2023-10-03T01:42:49.003788Z
+4059	Adult Cardiac SuperPanel	2.43	2025-10-09T06:05:36.113875Z
+36	Alagille syndrome	1.0	2020-09-24T11:24:48.443596Z
+40	Alternating Hemiplegia and Hemiplegic Migraine	0.61	2025-10-16T06:47:07.506667Z
+3564	Amelogenesis imperfecta	1.12	2025-10-09T03:26:38.364748Z
+3929	Aminoacidopathy	1.137	2025-10-17T00:39:07.964686Z
+191	Amyloidosis	1.1	2025-07-04T10:21:06.835536Z
+41	Angelman Rett like syndromes	1.13	2025-09-11T23:09:44.778825Z
+42	Anophthalmia_Microphthalmia_Coloboma	1.50	2025-08-18T00:28:30.473896Z
+44	Aortopathy_Connective Tissue Disorders	1.100	2025-10-17T00:43:16.449659Z
+254	Arrhythmia_SuperPanel	3.36	2025-10-09T06:05:36.248876Z
+48	Arrhythmogenic Cardiomyopathy	0.73	2025-10-09T06:05:35.918836Z
+47	Arthrogryposis	0.427	2025-10-16T05:06:05.715465Z
+268	Ataxia - adult onset	1.57	2025-10-16T06:45:15.069726Z
+271	Ataxia - paediatric	1.58	2025-10-16T06:59:11.275502Z
+289	Ataxia_Superpanel	3.113	2025-10-16T06:59:11.874319Z
+210	Atrial Fibrillation	1.4	2025-09-10T02:35:08.767154Z
+211	Atypical Haemolytic Uraemic Syndrome_MPGN	0.54	2025-05-01T10:58:36.707010Z
+3440	Auditory Neuropathy	1.1	2021-01-14T22:03:39.837419Z
+51	Autism	0.223	2025-10-15T05:37:22.031577Z
+4389	Autoimmune Lymphoproliferative Syndrome	1.11	2025-10-17T02:11:10.149824Z
+238	Autoinflammatory Disorders	2.28	2025-10-08T06:30:33.141850Z
+3439	Autonomic neuropathy	0.51	2024-10-03T01:55:38.097432Z
+53	Bardet Biedl syndrome	1.14	2025-05-21T10:50:29.131780Z
+4360	Basal Cell Cancer	1.1	2024-11-01T05:26:31.314601Z
+54	Bleeding and Platelet Disorders	1.62	2025-10-10T05:52:32.466780Z
+55	Blepharophimosis	1.3	2025-04-26T23:04:52.368864Z
+56	Bone Marrow Failure	1.126	2025-09-19T07:31:30.174110Z
+58	Brain Calcification	1.99	2024-12-08T00:06:21.077648Z
+74	Brain Channelopathies	1.5	2025-10-16T06:46:30.269069Z
+4375	Breast Cancer	1.1	2024-11-01T05:26:57.083055Z
+60	Brugada syndrome	0.34	2020-06-01T04:28:49.182809Z
+192	Calcium and Phosphate disorders	1.24	2024-07-03T08:42:48.978875Z
+205	Callosome	0.562	2025-10-16T05:06:28.389433Z
+152	Cancer Predisposition_Paediatric	0.132	2025-09-04T22:15:42.242486Z
+4422	Cardiac conduction disease	1.3	2025-10-07T01:01:06.777445Z
+253	Cardiomyopathy_Adult_SuperPanel	2.36	2025-10-09T06:05:36.367803Z
+3270	Cardiomyopathy_Paediatric	0.207	2025-10-08T05:52:50.963631Z
+66	Cataract	0.375	2025-10-02T04:36:58.272187Z
+92	Catecholaminergic Polymorphic Ventricular Tachycardia	0.35	2024-04-04T07:26:49.432452Z
+71	Central Hypoventilation	1.6	2025-10-17T01:02:14.370749Z
+72	Cerebellar and Pontocerebellar Hypoplasia	1.90	2025-10-05T20:29:19.013809Z
+3961	Cerebral amyloid angiopathy	1.1	2022-11-22T06:58:32.163408Z
+73	Cerebral Palsy	1.397	2025-10-16T06:46:34.852361Z
+3144	Cerebral vascular malformations	1.9	2025-05-08T06:57:44.430658Z
+3498	Choanal atresia	1.6	2024-10-03T01:49:26.278825Z
+78	Cholestasis	1.5	2025-10-16T05:54:03.527500Z
+70	Chondrodysplasia Punctata	1.1	2023-01-03T01:28:37.632208Z
+79	Chromosome Breakage Disorders	1.24	2025-10-16T04:58:38.818741Z
+3159	Chronic granulomatous disease	1.3	2023-01-03T01:30:39.102790Z
+82	Ciliary Dyskinesia	1.58	2025-10-16T05:23:58.749363Z
+84	Ciliopathies	1.91	2025-10-17T02:24:46.395282Z
+3368	Clefting disorders	0.276	2025-10-02T07:02:25.394462Z
+6	Cobblestone Malformations	1.1	2022-10-07T07:15:15.150864Z
+4371	Colorectal Cancer and Polyposis	1.1	2024-11-01T05:27:41.496206Z
+223	Combined Immunodeficiency	1.135	2025-10-16T04:50:26.085597Z
+3443	Common deletion and duplication syndromes	0.137	2020-12-07T23:28:46.216350Z
+224	Complement Deficiencies	1.1	2025-09-04T04:54:28.905464Z
+3147	Cone-rod Dystrophy	0.57	2025-09-10T03:05:18.549912Z
+251	Congenital abnormalities of the kidneys and urinary tract (CAKUT)_SuperPanel	1.117	2025-10-17T00:54:03.825375Z
+61	Congenital anomalies of the kidney and urinary tract (CAKUT) Nonsyndromic	0.127	2025-09-19T07:39:30.387586Z
+63	Congenital anomalies of the kidney and urinary tract (CAKUT) Syndromic	0.159	2025-10-17T00:54:03.687203Z
+69	Congenital diaphragmatic hernia	1.17	2025-08-20T04:33:47.954921Z
+89	Congenital Diarrhoea	1.23	2025-09-10T02:25:11.275258Z
+68	Congenital Disorders of Glycosylation	1.78	2025-10-16T06:19:53.201204Z
+76	Congenital Heart Defect	0.474	2025-10-17T02:55:15.831376Z
+3471	Congenital hypothyroidism	0.53	2025-09-12T21:04:50.292170Z
+3078	Congenital Myasthenia	1.16	2025-10-16T06:22:14.057808Z
+3762	Congenital nystagmus	1.22	2024-09-26T00:52:58.373396Z
+3379	Congenital ophthalmoplegia	1.10	2025-05-21T10:17:36.856953Z
+283	Congenital Stationary Night Blindness	0.23	2023-01-03T01:48:51.028601Z
+91	Corneal Dystrophy	1.13	2025-09-11T02:22:19.767683Z
+93	Craniosynostosis	1.72	2025-10-02T05:54:35.242179Z
+3129	Cutis Laxa	1.0	2022-10-16T07:04:47.521878Z
+3241	Deafness_Isolated	1.82	2025-10-09T03:40:05.245583Z
+209	Deafness_IsolatedAndComplex	1.236	2025-10-17T02:20:37.992781Z
+231	Defects of intrinsic and innate immunity	1.20	2025-02-27T06:23:25.905200Z
+97	Desmosomal disorders	0.33	2023-01-03T01:56:23.448601Z
+3445	Diabetes Insipidus	1.3	2023-01-03T01:58:00.380146Z
+98	Diamond Blackfan anaemia	1.11	2025-07-11T11:22:59.271068Z
+99	Differences of Sex Development	1.24	2025-10-16T05:35:20.996035Z
+4368	Diffuse Gastric Cancer	1.1	2024-11-01T05:28:14.662725Z
+95	Dilated Cardiomyopathy	1.48	2025-10-09T06:00:12.123335Z
+229	Disorders of immune dysregulation	1.33	2025-10-17T02:09:21.153758Z
+332	Dyslipidaemia	0.46	2025-09-10T02:21:20.400604Z
+290	Dystonia - complex	0.288	2025-10-06T23:00:48.481136Z
+291	Dystonia - isolated/combined	1.42	2025-10-16T06:45:06.019886Z
+3123	Dystonia_Superpanel	1.207	2025-10-16T06:45:45.321046Z
+24	Early-onset Dementia	1.48	2025-10-09T06:32:48.865575Z
+26	Early-onset Parkinson disease	2.43	2025-10-16T05:29:06.371961Z
+3089	Ectodermal Dysplasia	0.102	2025-09-12T03:43:24.351347Z
+4373	Endometrial Cancer	1.1	2024-11-01T05:28:51.012692Z
+101	Epidermolysis bullosa	1.22	2025-02-28T08:21:49.844145Z
+3179	Episodic Ataxia	1.1	2023-01-03T02:23:38.996287Z
+43	Eye Anterior Segment Abnormalities	1.15	2025-09-18T02:42:29.634486Z
+4093	Facial papules	1.0	2023-06-19T23:26:44.456908Z
+333	Familial hypercholesterolaemia	1.0	2024-12-04T02:37:18.095728Z
+3894	Familial hypoparathyroidism	1.7	2025-08-26T10:03:24.408551Z
+103	Fatty Acid Oxidation Defects	1.14	2023-05-01T03:11:21.765799Z
+3763	Fetal anomalies	1.457	2025-10-17T03:08:31.369247Z
+3150	Foveal Hypoplasia	0.8	2023-01-03T05:07:58.595847Z
+104	Frontonasal dysplasia	1.2	2025-07-04T10:20:20.968168Z
+3087	Gastrointestinal neuromuscular disease	1.25	2025-04-12T05:15:18.825174Z
+4369	Gastrointestinal Stromal Tumour	1.0	2024-10-09T02:50:01.896692Z
+202	Genetic Epilepsy	1.254	2025-10-17T02:39:37.550241Z
+3931	Genomic newborn screening: BabyScreen+	1.139	2025-10-02T06:11:12.603635Z
+4456	Genomic newborn screening: ICoNS	0.16	2025-10-16T03:03:31.776007Z
+105	Glaucoma congenital	1.9	2024-03-11T06:30:46.906601Z
+106	Glycogen Storage Diseases	1.3	2025-09-19T07:52:36.387028Z
+3631	Growth failure	1.83	2025-10-16T04:58:50.799526Z
+39	Haematuria_Alport	1.2	2025-06-04T16:00:04.228914Z
+3077	Haem degradation and bilirubin metabolism defects	0.19	2025-09-03T08:31:08.071439Z
+3269	Hair disorders	0.81	2025-09-07T22:20:00.750598Z
+3729	Hand and foot malformations	0.77	2025-09-01T07:41:36.642276Z
+226	Hereditary angioedema	1.11	2025-09-09T08:38:39.926214Z
+260	Hereditary Haemorrhagic Telangiectasia	1.5	2023-01-03T05:24:41.267305Z
+3069	Hereditary Neuropathy_CMT - isolated	1.67	2025-10-17T01:22:35.739748Z
+3120	Hereditary Neuropathy_CMT_IsolatedAndComplex	2.76	2025-10-17T02:13:12.440262Z
+3070	Hereditary Neuropathy - complex	1.40	2025-10-17T02:13:12.146838Z
+4457	Hereditary Pigmentary Disorders	1.3	2025-06-05T08:32:35.261135Z
+312	Hereditary Spastic Paraplegia - adult onset	1.15	2025-10-16T04:54:55.128391Z
+317	Hereditary Spastic Paraplegia - paediatric	1.101	2025-10-16T06:28:32.295588Z
+3117	Hereditary Spastic Paraplegia Superpanel	2.114	2025-10-16T06:28:32.780628Z
+108	Heterotaxy	1.43	2025-10-16T05:14:51.221949Z
+110	Hirschsprung disease	0.27	2025-10-06T23:32:06.423756Z
+112	Holoprosencephaly and septo-optic dysplasia	1.21	2025-08-28T04:20:45.024119Z
+115	Hydrocephalus_Ventriculomegaly	0.132	2025-10-17T03:07:31.574651Z
+116	Hydrops fetalis	0.328	2025-07-08T13:27:02.854141Z
+3470	Hyperammonaemia	0.10	2023-03-02T03:41:08.610876Z
+117	Hypercalcaemia	1.2	2023-01-03T06:40:50.155481Z
+118	Hyperinsulinism	1.49	2025-10-02T02:45:30.632938Z
+190	Hypertension and Aldosterone disorders	1.15	2024-12-03T23:07:35.499582Z
+3372	Hyperthyroidism	0.24	2025-08-22T07:15:13.131229Z
+120	Hypertrichosis syndromes	0.46	2024-01-11T23:53:43.957989Z
+111	Hypertrophic cardiomyopathy_HCM	1.10	2025-10-02T03:27:13.610624Z
+3829	IBMDx study	0.38	2025-10-09T03:50:10.963577Z
+124	Ichthyosis	1.13	2025-09-04T05:56:30.964306Z
+239	Immunological disorders_SuperPanel	15.119	2025-10-17T02:11:11.001234Z
+3663	Imprinting disorders	1.8	2025-09-03T02:47:30.751112Z
+126	Incidentalome	0.349	2025-10-11T03:57:34.091623Z
+3437	Incidentalome_PREGEN_DRAFT	0.43	2021-01-20T05:42:09.286633Z
+4455	Infertility and Recurrent Pregnancy Loss	1.45	2025-10-17T00:47:29.312232Z
+123	Inflammatory bowel disease	0.126	2025-10-16T04:50:33.114198Z
+250	Intellectual disability syndromic and non-syndromic	1.381	2025-10-17T03:49:04.781011Z
+127	Interstitial Lung Disease	1.2	2025-06-09T10:04:11.948218Z
+129	Joubert syndrome and other neurological ciliopathies	1.31	2025-10-02T06:33:33.945568Z
+134	Kabuki syndrome	0.16	2025-10-02T06:16:20.305922Z
+4367	Kidney Cancer	1.1	2024-11-01T05:29:17.989836Z
+275	Kidneyome_SuperPanel	9.44	2025-10-17T02:27:41.471178Z
+299	Leukodystrophy - adult onset	0.151	2025-09-11T02:35:49.260661Z
+298	Leukodystrophy - paediatric	0.332	2025-10-17T03:18:31.420970Z
+3094	Leukodystrophy_Superpanel	0.488	2025-10-17T03:18:31.767025Z
+3730	Limb and Digital Malformations SuperPanel	0.106	2025-10-02T06:39:52.281634Z
+3071	Limb-Girdle Muscular Dystrophy and Distal Myopathy	1.63	2025-10-09T06:06:24.609330Z
+130	Lipodystrophy_Lipoatrophy	1.25	2025-10-02T02:42:25.729407Z
+15	Lissencephaly and Band Heterotopia	1.24	2025-10-02T05:46:22.844538Z
+3400	Liver Failure_Paediatric	1.29	2025-10-16T07:20:35.529924Z
+4191	Liverome Superpanel	2.12	2025-10-16T07:20:35.733026Z
+131	Long QT Syndrome	0.61	2023-01-03T07:36:50.713342Z
+133	Lymphoedema_nonsyndromic	0.44	2025-02-04T00:26:10.667336Z
+3098	Lymphoedema_syndromic	0.12	2023-01-03T07:42:04.029128Z
+181	Lysosomal Storage Disorder	1.23	2025-10-02T06:26:24.347016Z
+3139	Mackenzie's Mission_Reproductive Carrier Screening	0.110	2025-08-26T07:24:03.776112Z
+135	Macrocephaly_Megalencephaly	0.151	2025-10-02T02:50:33.152248Z
+303	Macular Dystrophy/Stargardt Disease	0.56	2025-09-12T08:05:39.748935Z
+3136	Malformations of cortical development_Superpanel	4.79	2025-10-16T06:47:24.289658Z
+3378	Malignant Hyperthermia Susceptibility	1.8	2024-05-10T00:03:11.680206Z
+136	Mandibulofacial Acrofacial dysostosis	1.14	2025-04-26T22:43:31.733616Z
+301	Maturity-onset Diabetes of the Young	1.24	2025-05-12T07:10:37.011917Z
+3280	Medulloblastoma	1.1	2024-11-01T05:31:30.977610Z
+3279	Melanoma	1.1	2024-11-01T05:32:48.260830Z
+137	Mendeliome	1.3446	2025-10-17T04:10:24.752909Z
+4356	Meningioma	1.1	2024-11-01T05:29:51.451022Z
+3465	Metabolic Disorders Superpanel	8.659	2025-10-17T02:29:44.884420Z
+3469	Metal Metabolism Disorders	0.49	2025-06-17T04:49:32.992939Z
+3154	Metaphyseal dysplasias	0.5	2023-01-04T03:02:44.063168Z
+3128	Microcephalic Primordial Dwarfism and Slender bone dysplasias	0.29	2024-04-03T21:40:08.801769Z
+138	Microcephaly	1.349	2025-10-16T04:58:45.427389Z
+3696	Mirror movements	1.0	2021-09-02T02:08:23.638661Z
+3468	Miscellaneous Metabolic Disorders	1.57	2025-10-16T07:20:38.147308Z
+203	Mitochondrial disease	0.1085	2025-10-16T06:09:37.444904Z
+3093	Monogenic Diabetes	0.152	2025-10-17T02:29:42.591046Z
+3472	Mosaic skin disorders	1.14	2025-03-03T20:44:21.582499Z
+25	Motor Neurone Disease	1.39	2025-10-16T06:28:24.271946Z
+3127	Multiple epiphyseal dysplasia and pseudoachondroplasia	0.11	2023-12-27T01:00:17.151635Z
+3103	Multiple joint dislocations and laxity	0.9	2023-09-29T06:35:23.390963Z
+139	Multiple pterygium syndrome_Fetal akinesia sequence	1.5	2024-04-30T00:27:59.104368Z
+141	Muscular dystrophy and myopathy_Paediatric	1.108	2025-10-17T01:40:19.452477Z
+3101	Myopathy Superpanel	4.215	2025-10-17T01:40:32.969521Z
+4361	Neuroblastoma	1.1	2024-11-01T05:30:20.596726Z
+3438	Neurodegeneration with brain iron accumulation	1.1	2025-09-04T04:46:02.411915Z
+3374	Neurodegenerative disease - adult onset	6.154	2025-10-16T06:45:16.475620Z
+4092	Neuromuscular Superpanel	3.554	2025-10-17T02:13:13.877502Z
+145	Neurotransmitter Defects	1.7	2024-05-20T01:44:54.647883Z
+4294	Nucleotide metabolism disorders	0.8	2025-05-08T05:56:43.556103Z
+37	Ocular and Oculocutaneous Albinism	1.11	2023-12-05T08:22:31.870790Z
+148	Oligodontia	0.30	2025-06-03T11:07:06.214226Z
+149	Optic Atrophy	1.49	2025-09-01T06:50:17.327126Z
+147	Osteogenesis Imperfecta and Osteoporosis	1.8	2025-08-26T06:52:42.186358Z
+150	Osteopetrosis	0.38	2025-09-01T06:34:01.245173Z
+4374	Ovarian Cancer	1.1	2024-11-01T05:30:46.563986Z
+151	Overgrowth	1.16	2025-10-02T02:38:46.065492Z
+3126	Pain syndromes	0.36	2025-08-26T10:02:28.887366Z
+153	Palmoplantar Keratoderma and Erythrokeratoderma	0.136	2025-09-07T23:14:36.979792Z
+4370	Pancreatic Cancer	1.1	2024-11-01T05:32:06.575750Z
+154	Pancreatitis	1.6	2024-08-07T21:17:52.187056Z
+4365	Paraganglioma_phaeochromocytoma	1.1	2024-11-01T05:33:22.496669Z
+4363	Parathyroid Tumour	1.2	2024-11-01T05:33:54.194345Z
+259	Paroxysmal Dyskinesia	0.144	2025-10-16T06:45:45.005900Z
+19	Periventricular Grey Matter Heterotopia	1.2	2023-01-04T09:17:09.749124Z
+155	Peroxisomal Disorders	0.56	2025-10-09T06:22:42.252284Z
+233	Phagocyte Defects	1.44	2025-10-08T05:11:34.737260Z
+3271	Pharmacogenomics_Paediatric	0.50	2020-08-27T10:53:11.205850Z
+156	Photosensitivity Syndromes	1.10	2025-09-17T02:44:58.771281Z
+160	Pierre Robin Sequence	0.52	2025-08-20T02:19:54.295666Z
+3236	Pituitary hormone deficiency	0.39	2025-09-25T02:44:48.434089Z
+4364	Pituitary Tumour	1.1	2024-11-01T05:34:15.754213Z
+3960	Pneumothorax	1.1	2025-04-24T04:31:41.408160Z
+3274	Polycystic liver disease	1.8	2023-01-04T09:28:54.017980Z
+159	Polydactyly	0.294	2025-10-02T06:39:51.934696Z
+18	Polymicrogyria and Schizencephaly	0.201	2025-10-16T06:47:24.089860Z
+222	Predominantly Antibody Deficiency	1.4	2025-09-11T08:11:50.640122Z
+3861	Prepair 1000+	2.14	2025-10-02T06:46:26.012104Z
+4225	Prepair 500+	2.0	2025-05-29T16:52:12.758302Z
+3166	Primary Ovarian Insufficiency_Premature Ovarian Failure	0.362	2025-10-17T01:23:21.474228Z
+331	Progressive Myoclonic Epilepsy	0.22	2025-10-02T06:27:19.270498Z
+3377	Progressive Neurological Conditions	19.639	2025-10-17T03:18:34.915595Z
+4372	Prostate Cancer	1.1	2024-11-01T05:34:57.086516Z
+144	Proteinuria	0.231	2025-10-09T05:47:17.149876Z
+161	Pseudohypoparathyroidism and Albright Hereditary Osteodystrophy	0.33	2025-08-26T10:19:58.071270Z
+3095	Pulmonary Arterial Hypertension	1.45	2025-10-16T07:09:12.586830Z
+162	Pulmonary Fibrosis_Interstitial Lung Disease	0.90	2025-08-14T23:04:58.720369Z
+163	Radial Ray Abnormalities	1.19	2025-07-04T18:07:17.301363Z
+164	Rasopathy	0.108	2025-10-02T06:19:44.978689Z
+3366	Red cell disorders	1.33	2025-08-18T01:15:54.465085Z
+206	Regression	0.590	2025-10-17T03:17:15.851106Z
+193	Renal Ciliopathies and Nephronophthisis	1.43	2025-10-17T02:27:40.876224Z
+263	Renal Cystic Disease_SuperPanel	1.101	2025-10-17T02:27:55.905370Z
+262	Renal Glomerular Disease_SuperPanel	1.87	2025-10-09T05:47:30.056578Z
+194	Renal Macrocystic Disease	0.91	2025-10-15T05:41:35.998120Z
+199	Renal Tubulointerstitial Disease	1.3	2023-01-15T08:03:09.902266Z
+3993	Renal Tubulopathies and related disorders	1.20	2025-09-11T08:28:55.837408Z
+3597	Repeat Disorders	0.267	2025-08-08T02:47:03.268749Z
+3124	Retinal Disorders Superpanel	6.342	2025-10-17T00:37:06.515973Z
+278	Retinitis pigmentosa_Autosomal Dominant	0.80	2025-09-12T08:05:03.687490Z
+277	Retinitis pigmentosa_Autosomal Recessive/X-linked	0.179	2025-10-11T07:33:52.068961Z
+3100	Retinitis Pigmentosa Superpanel	0.261	2025-10-11T07:33:52.934986Z
+3084	Rhabdomyolysis and Metabolic Myopathy	1.26	2025-09-25T02:26:12.359039Z
+4359	Sarcoma non-soft tissue	1.1	2024-11-01T05:35:25.287340Z
+4358	Sarcoma soft tissue	1.0	2024-10-09T03:31:11.010233Z
+4357	Schwannoma	1.1	2024-11-01T05:35:56.331762Z
+234	Severe Combined Immunodeficiency (absent T absent B cells)	1.12	2025-10-16T04:50:29.365569Z
+235	Severe Combined Immunodeficiency (absent T present B cells)	1.13	2025-10-06T05:33:01.175292Z
+3764	Severe early-onset obesity	1.19	2025-07-04T10:09:44.469280Z
+173	Short Long Bones with Advanced Carpal Bone Age	0.1	2020-01-15T06:45:27.256051Z
+174	Short QT syndrome	1.7	2023-07-25T07:54:13.214709Z
+179	Short Rib Polydactyly_Jeune Asphyxiating Thoracic Dystrophy_Skeletal Ciliopathy	1.18	2025-10-17T02:26:16.960601Z
+258	Skeletal dysplasia	0.343	2025-10-17T03:46:18.524700Z
+28	Skeletal Dysplasia_Fetal	0.239	2025-10-16T05:07:21.764552Z
+302	Skeletal Muscle Channelopathies	1.1	2023-01-15T07:36:15.232226Z
+4290	Speech apraxia	1.27	2024-09-13T03:22:42.781189Z
+177	Spondylocostal Dysostosis	0.10	2024-02-16T05:34:50.744096Z
+4323	Spontaneous coronary artery dissection	0.56	2024-12-09T02:28:09.179277Z
+3114	Stickler Syndrome	1.10	2025-05-08T05:50:36.084781Z
+3141	Stroke	1.27	2025-09-17T02:07:03.232424Z
+237	Susceptibility to Viral Infections	1.1	2025-08-26T08:09:04.624473Z
+3099	Syndromic Retinopathy	0.234	2025-10-17T00:37:05.964694Z
+4362	Thyroid Cancer	1.1	2024-11-01T05:36:20.733311Z
+4126	Transplant Co-Morbidity	0.20	2025-10-10T03:19:49.984083Z
+3531	Tremors_Superpanel	3.122	2025-10-16T06:45:57.391646Z
+20	Tuberous Sclerosis_Focal Cortical Dysplasia_Hemimegalencephaly	0.48	2022-10-15T06:24:12.744641Z
+21	Tubulinopathies	1.2	2024-09-11T02:06:06.122951Z
+3086	Usher Syndrome	1.5	2023-01-15T07:08:18.097118Z
+300	Vascular Malformations_Germline	1.12	2025-01-15T04:28:52.531720Z
+3181	Vascular Malformations_Somatic	1.16	2025-10-02T02:54:21.549968Z
+3731	Vascular Malformations SuperPanel	1.68	2025-10-02T02:54:21.696436Z
+32	Vasculitis	0.93	2025-10-16T04:48:10.049511Z
+183	Ventricular Fibrillation	0.5	2022-10-15T06:19:54.805725Z
+4257	Vitamin metabolism disorders	1.7	2024-09-17T23:35:00.495806Z
+3113	Vitreoretinopathy	1.9	2025-09-25T02:27:18.666129Z
+4366	Wilms Tumour	1.1	2025-09-04T22:17:06.102713Z
