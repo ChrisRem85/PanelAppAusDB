@@ -1,261 +1,198 @@
 #!/usr/bin/env python3
 """
-PanelApp Australia Data Extraction Script (Python)
+PanelApp Australia Complete Data Extraction Wrapper Script (Python)
 
-This script extracts panel data from the PanelApp Australia API.
-Creates a folder for the current date and downloads all panels with pagination.
+This script orchestrates the complete data extraction process:
+1. Extracts panel list data
+2. Extracts detailed gene data for each panel
+3. Will extract STR data (placeholder for future implementation)
+4. Will extract region data (placeholder for future implementation)
 """
 
-import os
-import json
-import requests
 import argparse
-import logging
+import os
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, List, Any
-from urllib.parse import urljoin
 
 
-class PanelAppExtractor:
-    """Class to handle PanelApp Australia data extraction."""
+def log_message(message: str, level: str = "INFO") -> None:
+    """Log a message with timestamp and color coding."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    colors = {
+        "ERROR": "\033[91m",
+        "SUCCESS": "\033[92m", 
+        "WARNING": "\033[93m",
+        "INFO": "\033[94m"
+    }
+    reset = "\033[0m"
+    color = colors.get(level, colors["INFO"])
+    print(f"\033[94m[{timestamp}]\033[0m {color}{message}{reset}")
+
+
+def run_script(script_path: str, script_name: str, args: list = None, optional: bool = False) -> bool:
+    """Execute a script and handle errors."""
+    if not os.path.exists(script_path):
+        if optional:
+            log_message(f"{script_name} not found at {script_path} (optional - skipping)", "WARNING")
+            return True
+        else:
+            log_message(f"{script_name} not found at {script_path}", "ERROR")
+            return False
     
-    def __init__(self, output_path: str = "../data"):
-        self.base_url = "https://panelapp-aus.org/api"
-        self.api_version = "v1"
-        self.swagger_url = "https://panelapp-aus.org/api/docs/?format=openapi"
-        self.expected_api_version = "v1"
-        self.output_path = Path(output_path)
-        self.session = requests.Session()
-        
-        # Setup logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-        self.logger = logging.getLogger(__name__)
+    log_message(f"Running {script_name}...")
     
-    def create_date_folder(self) -> Path:
-        """Create folder for current date."""
-        date_folder = datetime.now().strftime("%Y%m%d")
-        full_path = self.output_path / date_folder / "panel_list" / "json"
+    try:
+        cmd = [sys.executable, script_path]
+        if args:
+            cmd.extend(args)
         
-        self.logger.info(f"Creating date folder: {date_folder}")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)  # 1 hour timeout
         
-        try:
-            full_path.mkdir(parents=True, exist_ok=True)
-            self.logger.info(f"Created folder structure: {full_path}")
-            return self.output_path / date_folder
-        except Exception as e:
-            self.logger.error(f"Failed to create folder structure: {e}")
-            raise
-    
-    def check_api_version(self) -> None:
-        """Check if API is still on the required version."""
-        self.logger.info("Checking API version...")
-        
-        try:
-            response = self.session.get(self.swagger_url, timeout=30)
-            response.raise_for_status()
+        if result.returncode == 0:
+            log_message(f"{script_name} completed successfully", "SUCCESS")
+            if result.stdout:
+                print(result.stdout)
+            return True
+        else:
+            log_message(f"{script_name} failed with exit code {result.returncode}", "ERROR")
+            if result.stderr:
+                print(result.stderr)
+            return False
             
-            swagger_data = response.json()
-            api_version = swagger_data.get("info", {}).get("version")
-            
-            if not api_version:
-                raise ValueError("Could not determine API version from swagger documentation")
-            
-            self.logger.info(f"Current API version: {api_version}")
-            
-            if api_version != self.expected_api_version:
-                self.logger.warning(
-                    f"API version mismatch! Expected: {self.expected_api_version}, "
-                    f"Found: {api_version}"
-                )
-                self.logger.warning("Continuing with execution, but results may vary...")
-            else:
-                self.logger.info(f"API version matches expected version: {self.expected_api_version}")
-                
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"Failed to fetch swagger documentation: {e}")
-            raise
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Invalid JSON in swagger response: {e}")
-            raise
-    
-    def download_panels(self, output_dir: Path) -> None:
-        """Download panels with pagination."""
-        panel_url = f"{self.base_url}/{self.api_version}/panels/"
-        page = 1
-        next_url = panel_url
-        
-        self.logger.info("Starting panel data extraction...")
-        
-        try:
-            while next_url and next_url != "null":
-                self.logger.info(f"Downloading page {page}...")
-                
-                response_file = output_dir / "panel_list" / "json" / f"panels_page_{page}.json"
-                
-                # Download the page
-                response = self.session.get(next_url, timeout=30)
-                response.raise_for_status()
-                
-                # Parse and validate JSON
-                try:
-                    data = response.json()
-                except json.JSONDecodeError as e:
-                    self.logger.error(f"Invalid JSON received for page {page}: {e}")
-                    raise
-                
-                # Save to file
-                with open(response_file, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
-                
-                # Get pagination info
-                count = data.get('count', 0)
-                next_url = data.get('next')
-                results_count = len(data.get('results', []))
-                
-                self.logger.info(f"Page {page} downloaded: {results_count} panels (Total in API: {count})")
-                
-                page += 1
-                
-                # Safety check to prevent infinite loops
-                if page > 1000:
-                    self.logger.error("Safety limit reached (1000 pages). Stopping to prevent infinite loop.")
-                    break
-            
-            self.logger.info(f"Panel data extraction completed. Downloaded {page-1} pages.")
-            
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"HTTP error during panel download: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"Unexpected error during panel download: {e}")
-            raise
-    
-    def extract_panel_info(self, output_dir: Path) -> None:
-        """Extract panel information from JSON files."""
-        json_dir = output_dir / "panel_list" / "json"
-        tsv_file = output_dir / "panel_list.tsv"
-        
-        self.logger.info("Extracting panel information from JSON files...")
-        
-        try:
-            # Prepare data collection
-            panels_data = []
-            file_count = 0
-            panel_count = 0
-            
-            # Process all JSON files
-            for json_file in json_dir.glob("panels_page_*.json"):
-                file_count += 1
-                
-                try:
-                    with open(json_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    
-                    for panel in data.get('results', []):
-                        stats = panel.get('stats', {})
-                        panel_info = {
-                            'id': panel.get('id'),
-                            'name': panel.get('name', ''),
-                            'version': panel.get('version'),
-                            'version_created': panel.get('version_created'),
-                            'number_of_genes': stats.get('number_of_genes', 0),
-                            'number_of_strs': stats.get('number_of_strs', 0),
-                            'number_of_regions': stats.get('number_of_regions', 0)
-                        }
-                        panels_data.append(panel_info)
-                        panel_count += 1
-                        
-                except json.JSONDecodeError as e:
-                    self.logger.error(f"Error reading JSON file {json_file}: {e}")
-                    continue
-                except Exception as e:
-                    self.logger.error(f"Unexpected error processing file {json_file}: {e}")
-                    continue
-            
-            # Write to TSV
-            with open(tsv_file, 'w', encoding='utf-8') as f:
-                # Write header
-                f.write("id\tname\tversion\tversion_created\tnumber_of_genes\tnumber_of_strs\tnumber_of_regions\n")
-                # Write data
-                for panel in panels_data:
-                    f.write(f"{panel['id']}\t{panel['name']}\t{panel['version']}\t{panel['version_created']}\t{panel['number_of_genes']}\t{panel['number_of_strs']}\t{panel['number_of_regions']}\n")
-            
-            self.logger.info(f"Extracted information from {file_count} files containing {panel_count} panels")
-            self.logger.info(f"Summary saved to: {tsv_file}")
-            
-            # Display first few lines of the summary
-            if tsv_file.exists() and panels_data:
-                self.logger.info("First 5 entries in summary:")
-                for i, panel in enumerate(panels_data[:5]):
-                    self.logger.info(f"  {panel['id']}: {panel['name']}")
-            
-        except Exception as e:
-            self.logger.error(f"Error during panel information extraction: {e}")
-            raise
-    
-    def extract_data(self) -> None:
-        """Main extraction method."""
-        self.logger.info("Starting PanelApp Australia data extraction...")
-        
-        try:
-            # Create date folder
-            output_dir = self.create_date_folder()
-            
-            # Check API version
-            self.check_api_version()
-            
-            # Download panels
-            self.download_panels(output_dir)
-            
-            # Extract panel information
-            self.extract_panel_info(output_dir)
-            
-            self.logger.info("Data extraction completed successfully!")
-            self.logger.info(f"Output directory: {output_dir}")
-            
-        except Exception as e:
-            self.logger.error(f"Data extraction failed: {e}")
-            raise
+    except subprocess.TimeoutExpired:
+        log_message(f"{script_name} timed out after 1 hour", "ERROR")
+        return False
+    except Exception as e:
+        log_message(f"{script_name} failed with error: {e}", "ERROR")
+        return False
 
 
 def main():
-    """Main function with command line argument parsing."""
+    """Main execution function."""
     parser = argparse.ArgumentParser(
-        description="Extract panel data from PanelApp Australia API"
+        description="Complete data extraction wrapper for PanelApp Australia API",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+EXAMPLES:
+    python extract_panels.py                           # Full extraction
+    python extract_panels.py --skip-genes              # Skip gene extraction
+    python extract_panels.py --output-path /path/data  # Custom output path
+    python extract_panels.py --verbose                 # Verbose logging
+        """
+    )
+    
+    parser.add_argument(
+        "--output-path", 
+        default="../data",
+        help="Path to output directory (default: ../data)"
     )
     parser.add_argument(
-        '--output-path', 
-        default="../data", 
-        help="Output directory path (default: ../data)"
+        "--skip-genes",
+        action="store_true",
+        help="Skip gene data extraction"
     )
     parser.add_argument(
-        '--verbose', '-v', 
-        action='store_true', 
+        "--skip-strs",
+        action="store_true",
+        help="Skip STR data extraction"
+    )
+    parser.add_argument(
+        "--skip-regions",
+        action="store_true",
+        help="Skip region data extraction"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
         help="Enable verbose logging"
     )
     
     args = parser.parse_args()
     
+    log_message("Starting PanelApp Australia complete data extraction...")
+    
+    script_dir = Path(__file__).parent
+    success = True
+    
+    # Step 1: Extract panel list data
+    panel_list_script = script_dir / "extract_panel_list.py"
+    panel_list_args = ["--output-path", args.output_path]
     if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+        panel_list_args.append("--verbose")
     
-    try:
-        extractor = PanelAppExtractor(output_path=args.output_path)
-        extractor.extract_data()
-    except KeyboardInterrupt:
-        print("\nExtraction cancelled by user.")
-        return 1
-    except Exception as e:
-        print(f"Extraction failed: {e}")
-        return 1
+    if not run_script(str(panel_list_script), "Panel List Extraction", panel_list_args):
+        log_message("Panel list extraction failed. Cannot continue.", "ERROR")
+        sys.exit(1)
     
-    return 0
+    # Use the output path directly as data folder
+    data_folder = Path(args.output_path)
+    
+    if not data_folder.exists():
+        log_message(f"Data folder not found: {data_folder}", "ERROR")
+        sys.exit(1)
+    
+    log_message(f"Using data folder: {data_folder}")
+    
+    # Step 2: Extract gene data (if not skipped)
+    if not args.skip_genes:
+        gene_script = script_dir / "extract_genes_incremental.py"
+        gene_args = ["--data-path", args.output_path]
+        if args.verbose:
+            gene_args.append("--verbose")
+        
+        if not run_script(str(gene_script), "Gene Data Extraction", gene_args):
+            log_message("Gene extraction failed, but continuing with other extractions", "WARNING")
+            success = False
+    else:
+        log_message("Skipping gene extraction (--skip-genes specified)")
+    
+    # Step 3: Extract STR data (placeholder - future implementation)
+    if not args.skip_strs:
+        str_script = script_dir / "extract_strs.py"
+        str_args = ["--data-path", args.output_path]
+        if args.verbose:
+            str_args.append("--verbose")
+        
+        if not run_script(str(str_script), "STR Data Extraction", str_args, optional=True):
+            log_message("STR extraction failed or not implemented yet", "WARNING")
+    else:
+        log_message("Skipping STR extraction (--skip-strs specified)")
+    
+    # Step 4: Extract region data (placeholder - future implementation)
+    if not args.skip_regions:
+        region_script = script_dir / "extract_regions.py"
+        region_args = ["--data-path", args.output_path]
+        if args.verbose:
+            region_args.append("--verbose")
+        
+        if not run_script(str(region_script), "Region Data Extraction", region_args, optional=True):
+            log_message("Region extraction failed or not implemented yet", "WARNING")
+    else:
+        log_message("Skipping region extraction (--skip-regions specified)")
+    
+    # Summary
+    if success:
+        log_message("Complete data extraction finished successfully!", "SUCCESS")
+    else:
+        log_message("Complete data extraction finished with some warnings/errors", "WARNING")
+    
+    log_message(f"Output directory: {data_folder}")
+    print()
+    log_message("Data extraction summary:")
+    log_message("  Panel list: Completed")
+    log_message(f"  Gene data: {'Skipped' if args.skip_genes else 'Attempted'}")
+    log_message(f"  STR data: {'Skipped' if args.skip_strs else 'Attempted (future implementation)'}")
+    log_message(f"  Region data: {'Skipped' if args.skip_regions else 'Attempted (future implementation)'}")
 
 
 if __name__ == "__main__":
-    exit(main())
+    try:
+        main()
+    except KeyboardInterrupt:
+        log_message("Extraction interrupted by user", "WARNING")
+        sys.exit(1)
+    except Exception as e:
+        log_message(f"Wrapper script execution failed: {e}", "ERROR")
+        sys.exit(1)

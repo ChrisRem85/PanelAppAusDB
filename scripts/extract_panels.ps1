@@ -1,19 +1,20 @@
-# PanelApp Australia Data Extraction Script (PowerShell)
-# This script extracts panel data from the PanelApp Australia API
-# Creates a folder for the current date and downloads all panels with pagination
+# PanelApp Australia Complete Data Extraction Wrapper Script (PowerShell)
+# This script orchestrates the complete data extraction process:
+# 1. Extracts panel list data
+# 2. Extracts detailed gene data for each panel
+# 3. Will extract STR data (placeholder for future implementation)
+# 4. Will extract region data (placeholder for future implementation)
 
 param(
-    [string]$OutputPath = "..\data"
+    [string]$OutputPath = "..\data",
+    [switch]$SkipGenes,
+    [switch]$SkipStrs,
+    [switch]$SkipRegions,
+    [switch]$Verbose
 )
 
 # Configuration
-$BaseURL = "https://panelapp-aus.org/api"
-$APIVersion = "v1"
-$SwaggerURL = "https://panelapp-aus.org/api/docs/?format=openapi"
-$ExpectedAPIVersion = "v1"
-
-# Enable TLS 1.2 for web requests
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$ScriptDir = $PSScriptRoot
 
 # Logging functions
 function Write-Log {
@@ -44,187 +45,172 @@ function Write-Warning-Log {
     Write-Log $Message "WARNING"
 }
 
-# Create date folder
-function New-DateFolder {
-    $dateFolder = Get-Date -Format "yyyyMMdd"
-    $fullPath = Join-Path $OutputPath $dateFolder
+# Execute a script and handle errors
+function Invoke-ExtractionScript {
+    param(
+        [string]$ScriptPath,
+        [string]$ScriptName,
+        [array]$Arguments = @(),
+        [bool]$Optional = $false
+    )
     
-    Write-Log "Creating date folder: $dateFolder"
-    
-    if (-not (Test-Path $OutputPath)) {
-        New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
-    }
-    
-    if (-not (Test-Path $fullPath)) {
-        $jsonPath = Join-Path $fullPath "panel_list\json"
-        New-Item -ItemType Directory -Path $jsonPath -Force | Out-Null
-        Write-Success-Log "Created folder structure: $jsonPath"
-    } else {
-        Write-Warning-Log "Folder $fullPath already exists"
-    }
-    
-    return $fullPath
-}
-
-# Check API version
-function Test-APIVersion {
-    Write-Log "Checking API version..."
-    
-    try {
-        $response = Invoke-RestMethod -Uri $SwaggerURL -Method Get -ErrorAction Stop
-        
-        $apiVersion = $response.info.version
-        
-        if (-not $apiVersion) {
-            Write-Error-Log "Could not determine API version from swagger documentation"
-            exit 1
-        }
-        
-        Write-Log "Current API version: $apiVersion"
-        
-        if ($apiVersion -ne $ExpectedAPIVersion) {
-            Write-Warning-Log "API version mismatch! Expected: $ExpectedAPIVersion, Found: $apiVersion"
-            Write-Warning-Log "Continuing with execution, but results may vary..."
+    if (-not (Test-Path $ScriptPath)) {
+        if ($Optional) {
+            Write-Warning-Log "$ScriptName not found at $ScriptPath (optional - skipping)"
+            return $true
         } else {
-            Write-Success-Log "API version matches expected version: $ExpectedAPIVersion"
-        }
-    }
-    catch {
-        Write-Error-Log "Failed to fetch swagger documentation: $($_.Exception.Message)"
-        exit 1
-    }
-}
-
-# Download panels with pagination
-function Get-PanelData {
-    param([string]$OutputDir)
-    
-    $panelURL = "$BaseURL/$APIVersion/panels/"
-    $page = 1
-    $nextURL = $panelURL
-    
-    Write-Log "Starting panel data extraction..."
-    
-    while ($nextURL -and $nextURL -ne "null") {
-        Write-Log "Downloading page $page..."
-        
-        $responseFile = Join-Path $OutputDir "panel_list\json\panels_page_$page.json"
-        
-        try {
-            $response = Invoke-RestMethod -Uri $nextURL -Method Get -ErrorAction Stop
-            
-            # Save response to file
-            $response | ConvertTo-Json -Depth 10 | Out-File -FilePath $responseFile -Encoding UTF8
-            
-            $count = $response.count
-            $nextURL = $response.next
-            $resultsCount = $response.results.Count
-            
-            Write-Success-Log "Page $page downloaded: $resultsCount panels (Total in API: $count)"
-            
-            $page++
-            
-            # Safety check to prevent infinite loops
-            if ($page -gt 1000) {
-                Write-Error-Log "Safety limit reached (1000 pages). Stopping to prevent infinite loop."
-                break
-            }
-        }
-        catch {
-            Write-Error-Log "Error downloading page $page`: $($_.Exception.Message)"
-            if (Test-Path $responseFile) {
-                Remove-Item $responseFile -Force
-            }
-            exit 1
+            Write-Error-Log "$ScriptName not found at $ScriptPath"
+            return $false
         }
     }
     
-    Write-Success-Log "Panel data extraction completed. Downloaded $($page-1) pages."
-}
-
-# Extract panel information from JSON files
-function Export-PanelInfo {
-    param([string]$OutputDir)
-    
-    $jsonDir = Join-Path $OutputDir "panel_list\json"
-    $tsvFile = Join-Path $OutputDir "panel_list.tsv"
-    
-    Write-Log "Extracting panel information from JSON files..."
-    
-    # Create TSV header
-    "id`tname`tversion`tversion_created`tnumber_of_genes`tnumber_of_strs`tnumber_of_regions" | Out-File -FilePath $tsvFile -Encoding UTF8
-    
-    $fileCount = 0
-    $panelCount = 0
-    $panels = @()
-    
-    Get-ChildItem -Path $jsonDir -Filter "panels_page_*.json" | ForEach-Object {
-        $fileCount++
-        
-        try {
-            $jsonContent = Get-Content $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
-            
-            foreach ($panel in $jsonContent.results) {
-                $panelInfo = [PSCustomObject]@{
-                    id = $panel.id
-                    name = $panel.name
-                    version = $panel.version
-                    version_created = $panel.version_created
-                    number_of_genes = $panel.stats.number_of_genes
-                    number_of_strs = $panel.stats.number_of_strs
-                    number_of_regions = $panel.stats.number_of_regions
-                }
-                $panels += $panelInfo
-                $panelCount++
-            }
-        }
-        catch {
-            Write-Error-Log "Error processing file $($_.Name): $($_.Exception.Message)"
-        }
-    }
-    
-    # Export to TSV
-    $panels | ForEach-Object {
-        "$($_.id)`t$($_.name)`t$($_.version)`t$($_.version_created)`t$($_.number_of_genes)`t$($_.number_of_strs)`t$($_.number_of_regions)"
-    } | Add-Content -Path $tsvFile -Encoding UTF8
-    
-    Write-Success-Log "Extracted information from $fileCount files containing $panelCount panels"
-    Write-Success-Log "Summary saved to: $tsvFile"
-    
-    # Display first few lines of the summary
-    if (Test-Path $tsvFile) {
-        Write-Log "First 5 entries in summary:"
-        Get-Content $tsvFile | Select-Object -First 6 | ForEach-Object {
-            Write-Host "  $_" -ForegroundColor Gray
-        }
-    }
-}
-
-# Main execution
-function Main {
-    Write-Log "Starting PanelApp Australia data extraction..."
+    Write-Log "Running $ScriptName..."
     
     try {
-        # Create date folder
-        $outputDir = New-DateFolder
+        $params = @()
+        if ($Arguments) {
+            $params += $Arguments
+        }
         
-        # Check API version
-        Test-APIVersion
+        # Add verbose flag if specified
+        if ($Verbose) {
+            $params += "-Verbose"
+        }
         
-        # Download panels
-        Get-PanelData -OutputDir $outputDir
+        $result = & $ScriptPath @params
         
-        # Extract panel information
-        Export-PanelInfo -OutputDir $outputDir
-        
-        Write-Success-Log "Data extraction completed successfully!"
-        Write-Log "Output directory: $outputDir"
+        if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq $null) {
+            Write-Success-Log "$ScriptName completed successfully"
+            return $true
+        } else {
+            Write-Error-Log "$ScriptName failed with exit code $LASTEXITCODE"
+            return $false
+        }
     }
     catch {
-        Write-Error-Log "Script execution failed: $($_.Exception.Message)"
+        Write-Error-Log "$ScriptName failed with error: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# Main execution function
+function Main {
+    Write-Log "Starting PanelApp Australia complete data extraction..."
+    
+    $success = $true
+    
+    # Step 1: Extract panel list data
+    $panelListScript = Join-Path $ScriptDir "extract_panel_list.ps1"
+    $panelListArgs = @("-OutputPath", $OutputPath)
+    
+    if (-not (Invoke-ExtractionScript -ScriptPath $panelListScript -ScriptName "Panel List Extraction" -Arguments $panelListArgs)) {
+        Write-Error-Log "Panel list extraction failed. Cannot continue."
         exit 1
     }
+    
+    # Use the output path directly as data folder
+    $dataFolder = $OutputPath
+    
+    if (-not (Test-Path $dataFolder)) {
+        Write-Error-Log "Data folder not found: $dataFolder"
+        exit 1
+    }
+    
+    Write-Log "Using data folder: $dataFolder"
+    
+    # Step 2: Extract gene data (if not skipped)
+    if (-not $SkipGenes) {
+        $geneScript = Join-Path $ScriptDir "extract_genes_incremental.ps1"
+        $geneArgs = @("-DataPath", $OutputPath)
+        
+        if (-not (Invoke-ExtractionScript -ScriptPath $geneScript -ScriptName "Gene Data Extraction" -Arguments $geneArgs)) {
+            Write-Warning-Log "Gene extraction failed, but continuing with other extractions"
+            $success = $false
+        }
+    } else {
+        Write-Log "Skipping gene extraction (--SkipGenes specified)"
+    }
+    
+    # Step 3: Extract STR data (placeholder - future implementation)
+    if (-not $SkipStrs) {
+        $strScript = Join-Path $ScriptDir "extract_strs.ps1"
+        $strArgs = @("-DataPath", $OutputPath)
+        
+        if (-not (Invoke-ExtractionScript -ScriptPath $strScript -ScriptName "STR Data Extraction" -Arguments $strArgs -Optional $true)) {
+            Write-Warning-Log "STR extraction failed or not implemented yet"
+        }
+    } else {
+        Write-Log "Skipping STR extraction (--SkipStrs specified)"
+    }
+    
+    # Step 4: Extract region data (placeholder - future implementation)
+    if (-not $SkipRegions) {
+        $regionScript = Join-Path $ScriptDir "extract_regions.ps1"
+        $regionArgs = @("-DataPath", $OutputPath)
+        
+        if (-not (Invoke-ExtractionScript -ScriptPath $regionScript -ScriptName "Region Data Extraction" -Arguments $regionArgs -Optional $true)) {
+            Write-Warning-Log "Region extraction failed or not implemented yet"
+        }
+    } else {
+        Write-Log "Skipping region extraction (--SkipRegions specified)"
+    }
+    
+    # Summary
+    if ($success) {
+        Write-Success-Log "Complete data extraction finished successfully!"
+    } else {
+        Write-Warning-Log "Complete data extraction finished with some warnings/errors"
+    }
+    
+    Write-Log "Output directory: $dataFolder"
+    Write-Log ""
+    Write-Log "Data extraction summary:"
+    Write-Log "  Panel list: Completed"
+    Write-Log "  Gene data: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
+    Write-Log "  STR data: $(if ($SkipStrs) { 'Skipped' } else { 'Attempted (future implementation)' })"
+    Write-Log "  Region data: $(if ($SkipRegions) { 'Skipped' } else { 'Attempted (future implementation)' })"
+}
+
+# Show usage information
+function Show-Usage {
+    Write-Host @"
+PanelApp Australia Complete Data Extraction Wrapper
+
+DESCRIPTION:
+    This script orchestrates the complete data extraction process from PanelApp Australia API.
+    It runs panel list extraction followed by detailed data extraction for genes, STRs, and regions.
+
+USAGE:
+    .\extract_panels.ps1 [OPTIONS]
+
+OPTIONS:
+    -OutputPath PATH      Path to output directory (default: ..\data)
+    -SkipGenes           Skip gene data extraction
+    -SkipStrs            Skip STR data extraction
+    -SkipRegions         Skip region data extraction
+    -Verbose             Enable verbose logging
+    -Help                Show this help message
+
+EXAMPLES:
+    .\extract_panels.ps1                           # Full extraction
+    .\extract_panels.ps1 -SkipGenes                # Skip gene extraction
+    .\extract_panels.ps1 -OutputPath "C:\MyData"   # Custom output path
+    .\extract_panels.ps1 -Verbose                  # Verbose logging
+
+"@
+}
+
+# Handle help parameter
+if ($args -contains "-Help" -or $args -contains "--help" -or $args -contains "-h") {
+    Show-Usage
+    exit 0
 }
 
 # Run main function
-Main
+try {
+    Main
+}
+catch {
+    Write-Error-Log "Wrapper script execution failed: $($_.Exception.Message)"
+    exit 1
+}

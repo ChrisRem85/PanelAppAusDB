@@ -1,10 +1,13 @@
 # PanelApp Australia Database Extractor
 
-A collection of scripts to automatically extract panel data from the [PanelApp Australia API](https://panelapp-aus.org/api/docs/) and organize it by date.
+A collection of scripts to automatically extract comprehensive data from the [PanelApp Australia API](https://panelapp-aus.org/api/docs/) and organize it by date.
 
 ## Features
 
-- **Automatic date folder creation** (format: YYYYMMDD)
+- **Wrapper scripts** for complete data extraction (panels + genes + STRs + regions)
+- **Panel list extraction** with automatic date folder creation (format: YYYYMMDD)
+- **Version tracking** per panel in individual directories  
+- **Incremental extraction** - only download panels with newer versions
 - **API version checking** to ensure compatibility
 - **Paginated data extraction** with automatic "next" page handling
 - **Multiple script formats** (Bash, PowerShell, Python)
@@ -13,18 +16,18 @@ A collection of scripts to automatically extract panel data from the [PanelApp A
 
 ## Requirements
 
-### For Bash Script (`extract_panels.sh`)
+### For Bash Scripts (`extract_panels.sh` / `extract_panel_list.sh` / `extract_genes.sh`)
 - `bash` shell
 - `curl` command
 - `jq` JSON processor
 - Unix-like environment (Linux, macOS, WSL)
 
-### For PowerShell Script (`extract_panels.ps1`)
+### For PowerShell Scripts (`extract_panels.ps1` / `extract_panel_list.ps1` / `extract_genes.ps1`)
 - PowerShell 5.1 or later
 - Windows environment
 - Internet access
 
-### For Python Script (`extract_panels.py`)
+### For Python Scripts (`extract_panels.py` / `extract_panel_list.py` / `extract_genes.py`)
 - Python 3.6 or later
 - `requests` library (`pip install requests`)
 - Cross-platform (Windows, Linux, macOS)
@@ -53,31 +56,162 @@ pip install requests
 
 ## Usage
 
-### Using Bash Script (Recommended for Linux/macOS)
-```bash
-cd scripts
-chmod +x extract_panels.sh
-./extract_panels.sh
-```
+### Complete Data Extraction (Recommended)
 
-### Using PowerShell Script (Recommended for Windows)
+Use the wrapper scripts to extract all data types (panel list + genes + STRs + regions):
+
+**Using PowerShell Wrapper (Recommended for Windows):**
 ```powershell
 cd scripts
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser  # If needed
 .\extract_panels.ps1
+
+# Skip specific data types
+.\extract_panels.ps1 -SkipGenes
+.\extract_panels.ps1 -SkipStrs -SkipRegions
+
+# With verbose logging and custom path
+.\extract_panels.ps1 -OutputPath "C:\MyData" -Verbose
 ```
 
-### Using Python Script (Cross-platform)
+**Using Python Wrapper (Cross-platform):**
 ```bash
 cd scripts
 python extract_panels.py
 
+# Skip specific data types
+python extract_panels.py --skip-genes
+python extract_panels.py --skip-strs --skip-regions
+
+# With verbose logging and custom path
+python extract_panels.py --output-path /path/to/data --verbose
+```
+
+**Using Bash Wrapper (Linux/macOS/WSL):**
+```bash
+cd scripts
+chmod +x extract_panels.sh extract_panel_list.sh extract_genes_incremental.sh
+./extract_panels.sh
+
+# Skip specific data types
+./extract_panels.sh --skip-genes
+./extract_panels.sh --skip-strs --skip-regions
+
+# With verbose logging and custom path
+./extract_panels.sh --output-path /path/to/data --verbose
+```
+
+### Manual Step-by-Step Extraction
+
+If you prefer to run individual components manually:
+
+#### Step 1: Extract Panel List Only
+
+**Using Bash Script:**
+```bash
+cd scripts
+chmod +x extract_panel_list.sh
+./extract_panel_list.sh
+```
+
+**Using PowerShell Script:**
+```powershell
+cd scripts
+.\extract_panel_list.ps1
+```
+
+**Using Python Script:**
+```bash
+cd scripts
+python extract_panel_list.py
+
 # With custom output path
-python extract_panels.py --output-path /path/to/custom/output
+python extract_panel_list.py --output-path /path/to/custom/output
 
 # With verbose logging
-python extract_panels.py --verbose
+python extract_panel_list.py --verbose
 ```
+
+### Step 2: Extract Gene Data (Optional)
+
+After running the panel extraction, you can extract detailed gene data:
+
+**Using Bash Script:**
+```bash
+chmod +x extract_genes.sh
+./extract_genes.sh
+
+# Use specific data folder
+./extract_genes.sh --folder 20251017
+
+# With verbose logging
+./extract_genes.sh --verbose
+```
+
+**Using PowerShell Script:**
+```powershell
+.\extract_genes.ps1
+
+# Use specific data folder
+.\extract_genes.ps1 -Folder "20251017"
+
+# With verbose logging
+.\extract_genes.ps1 -Verbose
+```
+
+**Using Python Script:**
+```bash
+python extract_genes.py
+
+# Use specific data folder
+python extract_genes.py --folder 20251017
+
+# With custom data path and verbose logging
+python extract_genes.py --data-path /path/to/data --verbose
+```
+
+### Incremental Gene Extraction (Recommended)
+
+For efficiency, use the incremental extraction scripts that only download panels with newer versions than previously extracted:
+
+**Using Bash Script:**
+```bash
+./extract_genes_incremental.sh
+
+# Force re-download all panels
+./extract_genes_incremental.sh --force
+
+# Use specific data folder
+./extract_genes_incremental.sh --folder 20251017
+```
+
+**Using PowerShell Script:**
+```powershell
+.\extract_genes_incremental.ps1
+
+# Force re-download all panels
+.\extract_genes_incremental.ps1 -Force
+
+# Use specific data folder and verbose logging
+.\extract_genes_incremental.ps1 -Folder "20251017" -Verbose
+```
+
+**Using Python Script:**
+```bash
+python extract_genes_incremental.py
+
+# Force re-download all panels
+python extract_genes_incremental.py --force
+
+# Use specific data folder with verbose logging
+python extract_genes_incremental.py --folder 20251017 --verbose
+```
+
+The incremental scripts:
+- ✅ **Track extraction history** in `extraction_history.json`
+- ✅ **Compare version_created dates** to determine if panels need updating
+- ✅ **Skip unchanged panels** to save time and bandwidth
+- ✅ **Support force mode** to re-download all panels when needed
 
 ## Output Structure
 
@@ -91,7 +225,21 @@ data/
     │       ├── panels_page_1.json
     │       ├── panels_page_2.json
     │       └── ...
-    └── panel_list.tsv            # Extracted panel information (tab-separated)
+    ├── panels/                  # Individual panel data
+    │   ├── 3149/               # Panel ID folder
+    │   │   ├── version_created.txt    # Version tracking for incremental updates
+    │   │   ├── genes/
+    │   │   │   └── json/
+    │   │   │       ├── genes_page_1.json
+    │   │   │       └── ...
+    │   │   ├── strs/           # STR data (future implementation)
+    │   │   └── regions/        # Region data (future implementation)
+    │   └── 3150/               # Another panel
+    │       ├── version_created.txt
+    │       └── genes/
+    │           └── json/
+    │               └── genes_page_1.json
+    └── panel_list.tsv          # Extracted panel information (tab-separated)
 ```
 
 ## Data Extracted
@@ -188,6 +336,13 @@ id	name	version	version_created	number_of_genes	number_of_strs	number_of_regions
 ```
 
 ## Changelog
+
+### Version 1.2.0
+- **BREAKING:** Separated gene extraction into dedicated scripts (`extract_genes.*`)
+- Panel extraction scripts now focus only on panel metadata
+- Gene scripts: `extract_genes.py`, `extract_genes.ps1`, `extract_genes.sh`
+- Auto-detection of latest data folder for gene extraction
+- Enhanced command-line options for both script types
 
 ### Version 1.1.0
 - Added `number_of_genes`, `number_of_strs`, and `number_of_regions` columns to TSV output
