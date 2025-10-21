@@ -177,30 +177,66 @@ panel_needs_update() {
         return 0
     fi
     
-    # Check for existing version file in panel directory
-    local version_file="$data_folder/panels/$panel_id/version_created.txt"
+    # Check for JSON folder existence
+    local json_folder="$data_folder/panels/$panel_id/genes/json"
+    if [[ ! -d "$json_folder" ]]; then
+        log_message "Panel $panel_id has no JSON folder, will download"
+        return 0
+    fi
     
-    if [[ ! -f "$version_file" ]]; then
+    # Check for JSON files in the folder
+    local json_file_count=$(find "$json_folder" -name "*.json" -type f 2>/dev/null | wc -l)
+    if [[ "$json_file_count" -eq 0 ]]; then
+        log_message "Panel $panel_id has no JSON files in folder, will download"
+        return 0
+    fi
+    
+    # Check for version_extracted.txt file
+    local version_extracted_file="$data_folder/panels/$panel_id/genes/version_extracted.txt"
+    if [[ ! -f "$version_extracted_file" ]]; then
+        log_message "Panel $panel_id has no extraction tracking file, will download"
+        return 0
+    fi
+    
+    # Check for version_created.txt file
+    local version_created_file="$data_folder/panels/$panel_id/version_created.txt"
+    if [[ ! -f "$version_created_file" ]]; then
         log_message "Panel $panel_id has no version tracking file, will download"
         return 0
     fi
     
+    # Read extraction date
+    local extracted_date
+    extracted_date=$(cat "$version_extracted_file" 2>/dev/null | tr -d '[:space:]' || echo "")
+    
+    if [[ -z "$extracted_date" ]]; then
+        log_message "Panel $panel_id has empty extraction tracking file, will download"
+        return 0
+    fi
+    
+    # Read version created date
     local last_version_created
-    last_version_created=$(cat "$version_file" 2>/dev/null || echo "")
+    last_version_created=$(cat "$version_created_file" 2>/dev/null | tr -d '[:space:]' || echo "")
     
     if [[ -z "$last_version_created" ]]; then
         log_message "Panel $panel_id has empty version file, will download"
         return 0
     fi
     
-    # Compare dates (simplified string comparison should work for ISO dates)
+    # Check if panel version has been updated since last extraction
     if [[ "$current_version_created" > "$last_version_created" ]]; then
         log_message "Panel $panel_id has been updated ($last_version_created -> $current_version_created)"
         return 0
-    else
-        log_message "Panel $panel_id is up to date ($current_version_created)"
-        return 1
     fi
+    
+    # Check if extraction is older than the version created date
+    if [[ "$extracted_date" < "$last_version_created" ]]; then
+        log_message "Panel $panel_id extraction is older than version created date, will download"
+        return 0
+    fi
+    
+    log_message "Panel $panel_id is up to date ($current_version_created)"
+    return 1
 }
 
 # Download genes for a specific panel

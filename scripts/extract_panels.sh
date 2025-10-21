@@ -11,6 +11,7 @@ set -euo pipefail
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_PATH="../data"
+PANEL_ID=""
 SKIP_GENES=0
 SKIP_STRS=0
 SKIP_REGIONS=0
@@ -60,6 +61,7 @@ USAGE:
 
 OPTIONS:
     --output-path PATH    Path to output directory (default: ../data)
+    --panel-id ID         Extract data for specific panel ID only
     --skip-genes         Skip gene data extraction
     --skip-strs          Skip STR data extraction
     --skip-regions       Skip region data extraction
@@ -69,6 +71,7 @@ OPTIONS:
 
 EXAMPLES:
     $0                                    # Full extraction
+    $0 --panel-id 6                      # Extract only panel 6
     $0 --skip-genes                       # Skip gene extraction
     $0 --force                            # Force re-download all
     $0 --output-path /path/to/data        # Custom output path
@@ -83,6 +86,10 @@ parse_args() {
         case $1 in
             --output-path)
                 OUTPUT_PATH="$2"
+                shift 2
+                ;;
+            --panel-id)
+                PANEL_ID="$2"
                 shift 2
                 ;;
             --skip-genes)
@@ -185,13 +192,31 @@ main() {
         if [[ $FORCE -eq 1 ]]; then
             gene_args+=("--force")
         fi
+        if [[ -n "$PANEL_ID" ]]; then
+            gene_args+=("--panel-id" "$PANEL_ID")
+        fi
         
-        if ! run_script "$gene_script" "Gene Data Extraction" false "${gene_args[@]}"; then
+        if run_script "$gene_script" "Gene Data Extraction" false "${gene_args[@]}"; then
+            # Step 2b: Process gene data (convert JSON to TSV)
+            local process_script="$SCRIPT_DIR/process_genes.sh"
+            local process_args=("--data-path" "$OUTPUT_PATH")
+            if [[ $FORCE -eq 1 ]]; then
+                process_args+=("--force")
+            fi
+            if [[ -n "$PANEL_ID" ]]; then
+                process_args+=("--panel-id" "$PANEL_ID")
+            fi
+            
+            if ! run_script "$process_script" "Gene Data Processing" false "${process_args[@]}"; then
+                log_message "Gene processing failed, but continuing with other extractions" "WARNING"
+                success=false
+            fi
+        else
             log_message "Gene extraction failed, but continuing with other extractions" "WARNING"
             success=false
         fi
     else
-        log_message "Skipping gene extraction (--skip-genes specified)"
+        log_message "Skipping gene extraction and processing (--skip-genes specified)"
     fi
     
     # Step 3: Extract STR data (placeholder - future implementation)
@@ -230,6 +255,7 @@ main() {
     log_message "Data extraction summary:"
     log_message "  Panel list: Completed"
     log_message "  Gene data: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted'; fi)"
+    log_message "  Gene processing: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted'; fi)"
     log_message "  STR data: $(if [[ $SKIP_STRS -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted (future implementation)'; fi)"
     log_message "  Region data: $(if [[ $SKIP_REGIONS -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted (future implementation)'; fi)"
 }
