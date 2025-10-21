@@ -53,111 +53,130 @@ cd PanelAppAusDB
 
 Use the wrapper scripts to extract all data types (panel list + genes + STRs + regions):
 
-**Using PowerShell Wrapper (Recommended for Windows):**
+#### Windows PowerShell (Recommended for Windows users)
+
 ```powershell
 cd scripts
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser  # If needed
+
+# Set execution policy for current session (if needed)
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+
+# Complete extraction (panel list + genes + STRs + regions)
 .\extract_panels.ps1
 
 # Skip specific data types
 .\extract_panels.ps1 -SkipGenes
 .\extract_panels.ps1 -SkipStrs -SkipRegions
 
-# Force re-download all data (ignore version tracking)
-.\extract_panels.ps1 -Force
-
-# With verbose logging and custom path
+# With custom output path and verbose logging
 .\extract_panels.ps1 -OutputPath "C:\MyData" -Verbose
 ```
 
-**Using Bash Wrapper (Linux/macOS/WSL):**
+#### Bash (Linux/macOS/WSL)
+
 ```bash
 cd scripts
-chmod +x extract_panels.sh extract_panel_list.sh extract_genes.sh
-./extract_panels.sh
 
-# Skip specific data types
-./extract_panels.sh --skip-genes
-./extract_panels.sh --skip-strs --skip-regions
+# Make scripts executable
+chmod +x scripts/extract_panels.sh scripts/extract_genes.sh scripts/process_genes.sh
 
-# Force re-download all data (ignore version tracking)
-./extract_panels.sh --force
+# Complete extraction workflow
+./scripts/extract_panels.sh
 
-# With verbose logging and custom path
-./extract_panels.sh --output-path /path/to/data --verbose
+# With custom output path
+./scripts/extract_panels.sh --output-path "/home/user/mydata"
 ```
 
 ### Manual Step-by-Step Extraction
 
 If you prefer to run individual components manually:
 
-#### Step 1: Extract Panel List Only
+#### Step 1: Panel List Extraction Only
 
-**Using Bash Script:**
-```bash
-cd scripts
-chmod +x extract_panel_list.sh
-./extract_panel_list.sh
-```
-
-**Using PowerShell Script:**
+**PowerShell:**
 ```powershell
-cd scripts
+# Run just the panel list extraction script
 .\extract_panel_list.ps1
+
+# Or with custom output path
+.\extract_panel_list.ps1 -OutputPath "C:\MyData"
 ```
 
-### Step 2: Extract Gene Data (Optional)
+**Bash:**
+```bash
+# Extract panel list only
+./scripts/extract_panel_list.sh
+```
+
+#### Step 2: Gene Data Extraction (Optional)
 
 After running the panel extraction, you can extract detailed gene data:
 
-**Using Bash Script:**
-```bash
-chmod +x extract_genes.sh
-./extract_genes.sh
-
-# Use specific data folder
-./extract_genes.sh --data-path /path/to/data
-
-# Extract genes for specific panel ID only
-./extract_genes.sh --panel-id 6
-
-# With verbose logging and force re-download
-./extract_genes.sh --force --verbose
-```
-
-**Using PowerShell Script:**
+**PowerShell:**
 ```powershell
+# After panel extraction, extract detailed gene data
 .\extract_genes.ps1
 
-# Use specific data folder
+# Use specific data path
 .\extract_genes.ps1 -DataPath "C:\MyData"
 
 # Extract genes for specific panel ID only
 .\extract_genes.ps1 -PanelId 6
 
-# With verbose logging and force re-download
-.\extract_genes.ps1 -Force -Verbose
+# Force re-download all panels (bypass version checking)
+.\extract_genes.ps1 -Force
+
+# Combine parameters: specific panel with verbose logging
+.\extract_genes.ps1 -PanelId 6 -Force -Verbose
 ```
 
-### Step 3: Process Gene Data (Optional)
+**Bash:**
+```bash
+# Extract genes for all panels
+./scripts/extract_genes.sh
+
+# Extract genes for specific panel
+./scripts/extract_genes.sh --panel-id 6
+
+# Use specific data folder
+./scripts/extract_genes.sh --folder 20251017
+
+# With verbose logging
+./scripts/extract_genes.sh --verbose
+```
+
+#### Step 3: Process Gene Data (Convert JSON to TSV)
 
 After extracting gene data, you can process it into TSV format with built-in validation:
 
-**Using Bash Script:**
-```bash
-chmod +x process_genes.sh
-./process_genes.sh
-
-# With verbose logging
-./process_genes.sh --verbose
-```
-
-**Using PowerShell Script:**
+**PowerShell:**
 ```powershell
+# Process all panels (detects missing TSV files automatically)
 .\process_genes.ps1
 
-# With verbose logging
+# Process specific panel ID only
+.\process_genes.ps1 -PanelId 6
+
+# Force reprocessing even if files are up-to-date
+.\process_genes.ps1 -Force
+
+# With verbose logging for detailed progress
 .\process_genes.ps1 -Verbose
+
+# Custom data path with specific panel
+.\process_genes.ps1 -DataPath "C:\MyData" -PanelId 6 -Verbose
+```
+
+**Bash:**
+```bash
+# Process genes (JSON to TSV)
+./scripts/process_genes.sh
+
+# Process specific panel
+./scripts/process_genes.sh --panel-id 6
+
+# Force reprocessing
+./scripts/process_genes.sh --force
 ```
 
 The process_genes scripts:
@@ -178,37 +197,10 @@ The script automatically validates that the number of genes extracted matches th
 - Logs detailed statistics including success rate and summary counts
 - Uses color-coded output (green for success, red for failures, yellow for warnings)
 
-For efficiency, use the incremental extraction scripts that only download panels with newer versions than previously extracted:
+## Key Features of Gene Extraction
 
-**Using Bash Script:**
-```bash
-./extract_genes.sh
-
-# Force re-download all panels
-./extract_genes.sh --force
-
-# Extract specific panel only with verbose logging
-./extract_genes.sh --panel-id 6 --verbose
-
-# Use custom data path
-./extract_genes.sh --data-path /path/to/data --force
-```
-
-**Using PowerShell Script:**
-```powershell
-.\extract_genes.ps1
-
-# Force re-download all panels
-.\extract_genes.ps1 -Force
-
-# Extract specific panel only with verbose logging
-.\extract_genes.ps1 -PanelId 6 -Verbose
-
-# Use custom data path
-.\extract_genes.ps1 -DataPath "C:\MyData" -Force
-```
-
-The incremental scripts:
+The gene extraction scripts provide:
+- ✅ **Incremental extraction** - Only download panels with newer versions than previously extracted
 - ✅ **Track extraction history** in `version_extracted.txt` files
 - ✅ **Compare version_created dates** to determine if panels need updating
 - ✅ **Skip unchanged panels** to save time and bandwidth
@@ -223,39 +215,28 @@ The scripts create the following folder structure:
 ```
 data/
 ├── panel_list/
-│   └── json/
-│       ├── panels_page_1.json
-│       ├── panels_page_2.json
-│       └── ...
-├── panels/                      # Individual panel data
-│   ├── 3149/                   # Panel ID folder
-│   │   ├── version_created.txt         # Panel version tracking for incremental updates
-│   │   ├── genes/
-│   │   │   ├── json/
-│   │   │   │   ├── genes_page_1.json   # Raw gene data from API
-│   │   │   │   └── ...
-│   │   │   ├── genes.tsv               # Processed gene data (TSV format)
-│   │   │   ├── version_extracted.txt   # Gene extraction timestamp
-│   │   │   └── version_processed.txt   # Processing timestamp (when genes converted to TSV)
-│   │   ├── strs/                       # STR data (future implementation)
-│   │   └── regions/                    # Region data (future implementation)
-│   └── 3150/                   # Another panel
-│       ├── version_created.txt
-│       └── genes/
-│           ├── json/
-│           │   └── genes_page_1.json
-│           ├── genes.tsv
-│           ├── version_extracted.txt
-│           └── version_processed.txt
-└── panel_list.tsv              # Extracted panel information (tab-separated)
+│   ├── json/
+│   │   └── panels_page_*.json        # Raw panel data from API (paginated)
+│   └── panel_list.tsv                # Panel list summary (tab-separated)
+└── panels/                           # Individual panel gene data
+    └── [panel_id]/                   # Panel ID folders (e.g., 6, 7, 123, etc.)
+        ├── version_created.txt           # Panel version tracking for incremental updates
+        └── genes/
+            ├── json/
+            │   └── genes_page_*.json     # Raw gene data from API (paginated)
+            ├── genes.tsv                 # Processed gene data (tab-separated)
+            ├── version_extracted.txt     # Gene extraction timestamp
+            └── version_processed.txt     # Processing timestamp (when genes converted to TSV)
 ```
+
+**Note:** STR and regions data extraction is planned for future implementation. Currently, only panel metadata and gene data are extracted.
 
 ### File Descriptions
 
 | File | Purpose | Created By |
 |------|---------|------------|
 | `panel_list.tsv` | Summary of all panels with metadata | `extract_panel_list.*` scripts |
-| `version_created.txt` | Panel version from API for incremental updates | `extract_panel_list.*` scripts |
+| `version_created.txt` | Timestamp when panel was created (from API) | `extract_panel_list.*` scripts |
 | `version_extracted.txt` | Timestamp when genes were extracted | `extract_genes.*` scripts |
 | `version_processed.txt` | Timestamp when genes were processed to TSV | `process_genes.*` scripts |
 | `genes.tsv` | Processed gene data in tab-separated format | `process_genes.*` scripts |
@@ -263,6 +244,8 @@ data/
 ```
 
 ## Data Extracted
+
+### Panel Information
 
 From each panel, the following information is extracted:
 
@@ -275,6 +258,17 @@ From each panel, the following information is extracted:
 | `number_of_genes` | Number of genes in panel | `stats.number_of_genes` |
 | `number_of_strs` | Number of STRs in panel | `stats.number_of_strs` |
 | `number_of_regions` | Number of regions in panel | `stats.number_of_regions` |
+
+### Gene Data Structure
+
+Each panel's genes are stored in `panels/[panel_id]/genes/json/genes_page_*.json` and processed into `genes.tsv`.
+
+Gene data includes:
+- **entity_name**: Gene symbol (e.g., "CNGA3")
+- **confidence_level**: Evidence level (1-3)
+- **mode_of_inheritance**: Inheritance pattern
+- **phenotypes**: Associated conditions
+- **gene_data**: Detailed gene information (HGNC, OMIM, etc.)
 
 ## Configuration
 
@@ -300,10 +294,16 @@ This project uses the [PanelApp Australia API v1](https://panelapp-aus.org/api/d
 - **Panels endpoint:** `/panels/`
 - **Documentation:** [OpenAPI/Swagger](https://panelapp-aus.org/api/docs/?format=openapi)
 
+### API Status (as of October 2025)
+- **Total panels**: ~283
+- **API version**: v1
+- **Pagination**: ~100 panels per page
+- **Expected pages**: 3 (283 panels / 100 per page)
+
 The API uses pagination with the following structure:
 ```json
 {
-  "count": 123,
+  "count": 283,
   "next": "https://panelapp-aus.org/api/v1/panels/?page=2",
   "previous": null,
   "results": [...]
