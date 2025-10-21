@@ -137,7 +137,7 @@ EXAMPLES:
     
     # Step 2: Extract gene data (if not skipped)
     if not args.skip_genes:
-        gene_script = script_dir / "extract_genes_incremental.py"
+        gene_script = script_dir / "extract_genes.py"
         gene_args = ["--data-path", args.output_path]
         if args.verbose:
             gene_args.append("--verbose")

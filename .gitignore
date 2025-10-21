@@ -1,6 +1,9 @@
 # Data directory - contains downloaded PanelApp data
 data/
 
+# Tests directory - contains test data and outputs
+tests/
+
 # Extraction history - tracks version dates for incremental updates
 extraction_history.json
 

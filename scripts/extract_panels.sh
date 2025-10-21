@@ -173,7 +173,7 @@ main() {
     
     # Step 2: Extract gene data (if not skipped)
     if [[ $SKIP_GENES -eq 0 ]]; then
-        local gene_script="$SCRIPT_DIR/extract_genes_incremental.sh"
+        local gene_script="$SCRIPT_DIR/extract_genes.sh"
         local gene_args=("--data-path" "$OUTPUT_PATH")
         
         if ! run_script "$gene_script" "Gene Data Extraction" false "${gene_args[@]}"; then

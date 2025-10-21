@@ -120,7 +120,7 @@ function Main {
     
     # Step 2: Extract gene data (if not skipped)
     if (-not $SkipGenes) {
-        $geneScript = Join-Path $ScriptDir "extract_genes_incremental.ps1"
+        $geneScript = Join-Path $ScriptDir "extract_genes.ps1"
         $geneArgs = @("-DataPath", $OutputPath)
         
         if (-not (Invoke-ExtractionScript -ScriptPath $geneScript -ScriptName "Gene Data Extraction" -Arguments $geneArgs)) {

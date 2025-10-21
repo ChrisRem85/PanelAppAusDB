@@ -46,6 +46,8 @@ function Write-Warning-Log {
 
 # Create output folder structure
 function New-OutputFolder {
+    param([string]$OutputPath)
+    
     Write-Log "Setting up output folder: $OutputPath"
     
     if (-not (Test-Path $OutputPath)) {
@@ -213,7 +215,7 @@ function Main {
     
     try {
         # Create output folder structure
-        $outputDir = New-OutputFolder
+        $outputDir = New-OutputFolder -OutputPath $OutputPath
         
         # Check API version
         Test-APIVersion
