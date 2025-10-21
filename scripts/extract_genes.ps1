@@ -165,7 +165,7 @@ function Read-PanelData {
     return $panels
 }
 
-# Check if panel needs to be downloaded based on version file in panel directory
+# Check if panel needs to be downloaded based on version files and JSON folder
 function Test-PanelNeedsUpdate {
     param([hashtable]$Panel, [string]$DataFolder, [bool]$Force)
     
@@ -176,16 +176,46 @@ function Test-PanelNeedsUpdate {
     $panelId = $Panel.Id
     $currentVersionCreated = $Panel.VersionCreated
     
-    # Check for existing version file in panel directory
-    $versionFile = Join-Path $DataFolder "panels\$panelId\version_created.txt"
+    # Check for JSON folder existence
+    $jsonFolder = Join-Path $DataFolder "panels\$panelId\genes\json"
+    if (-not (Test-Path $jsonFolder)) {
+        Write-Log "Panel $panelId has no JSON folder, will download" -Level "INFO"
+        return $true
+    }
     
-    if (-not (Test-Path $versionFile)) {
+    # Check for JSON files in the folder
+    $jsonFiles = Get-ChildItem -Path $jsonFolder -Filter "*.json" -ErrorAction SilentlyContinue
+    if ($jsonFiles.Count -eq 0) {
+        Write-Log "Panel $panelId has no JSON files in folder, will download" -Level "INFO"
+        return $true
+    }
+    
+    # Check for version_extracted.txt file
+    $versionExtractedFile = Join-Path $DataFolder "panels\$panelId\genes\version_extracted.txt"
+    if (-not (Test-Path $versionExtractedFile)) {
+        Write-Log "Panel $panelId has no extraction tracking file, will download" -Level "INFO"
+        return $true
+    }
+    
+    # Check for version_created.txt file
+    $versionCreatedFile = Join-Path $DataFolder "panels\$panelId\version_created.txt"
+    if (-not (Test-Path $versionCreatedFile)) {
         Write-Log "Panel $panelId has no version tracking file, will download" -Level "INFO"
         return $true
     }
     
     try {
-        $lastVersionCreated = Get-Content $versionFile -Raw -Encoding UTF8
+        # Read extraction date
+        $extractedDate = Get-Content $versionExtractedFile -Raw -Encoding UTF8
+        $extractedDate = $extractedDate.Trim()
+        
+        if (-not $extractedDate) {
+            Write-Log "Panel $panelId has empty extraction tracking file, will download" -Level "INFO"
+            return $true
+        }
+        
+        # Read version created date
+        $lastVersionCreated = Get-Content $versionCreatedFile -Raw -Encoding UTF8
         $lastVersionCreated = $lastVersionCreated.Trim()
         
         if (-not $lastVersionCreated) {
@@ -193,20 +223,28 @@ function Test-PanelNeedsUpdate {
             return $true
         }
         
-        # Compare version dates
+        # Parse dates
         $currentDate = [DateTime]::Parse($currentVersionCreated)
-        $lastDate = [DateTime]::Parse($lastVersionCreated)
+        $lastCreatedDate = [DateTime]::Parse($lastVersionCreated)
+        $lastExtractedDate = [DateTime]::Parse($extractedDate)
         
-        if ($currentDate -gt $lastDate) {
+        # Check if panel version has been updated since last extraction
+        if ($currentDate -gt $lastCreatedDate) {
             Write-Log "Panel $panelId has been updated ($lastVersionCreated -> $currentVersionCreated)" -Level "INFO"
             return $true
-        } else {
-            Write-Log "Panel $panelId is up to date ($currentVersionCreated)" -Level "INFO"
-            return $false
         }
+        
+        # Check if extraction is older than the version created date
+        if ($lastExtractedDate -lt $lastCreatedDate) {
+            Write-Log "Panel $panelId extraction is older than version created date, will download" -Level "INFO"
+            return $true
+        }
+        
+        Write-Log "Panel $panelId is up to date ($currentVersionCreated)" -Level "INFO"
+        return $false
     }
     catch {
-        Write-Warning-Log "Error reading/parsing version file for panel $panelId, will download: $($_.Exception.Message)"
+        Write-Warning-Log "Error reading/parsing version files for panel $panelId, will download: $($_.Exception.Message)"
         return $true
     }
 }

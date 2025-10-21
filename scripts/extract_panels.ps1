@@ -8,6 +8,7 @@
 
 param(
     [string]$OutputPath = "..\data",
+    [string]$PanelId = "",
     [switch]$SkipGenes,
     [switch]$SkipStrs,
     [switch]$SkipRegions,
@@ -71,13 +72,27 @@ function Invoke-ExtractionScript {
     try {
         $params = @{}
         
-        # Process arguments as key-value pairs
+        # Process arguments
         if ($Arguments) {
-            for ($i = 0; $i -lt $Arguments.Length; $i += 2) {
-                if ($i + 1 -lt $Arguments.Length) {
-                    $paramName = $Arguments[$i] -replace '^-', ''  # Remove leading dash
-                    $paramValue = $Arguments[$i + 1]
-                    $params[$paramName] = $paramValue
+            $i = 0
+            while ($i -lt $Arguments.Length) {
+                $arg = $Arguments[$i]
+                if ($arg.StartsWith('-')) {
+                    $paramName = $arg -replace '^-', ''  # Remove leading dash
+                    
+                    # Check if this is a switch parameter (no value follows, or next item is another parameter)
+                    if (($i + 1 -ge $Arguments.Length) -or ($Arguments[$i + 1].StartsWith('-'))) {
+                        # This is a switch parameter
+                        $params[$paramName] = $true
+                        $i++
+                    } else {
+                        # This is a parameter with a value
+                        $paramValue = $Arguments[$i + 1]
+                        $params[$paramName] = $paramValue
+                        $i += 2
+                    }
+                } else {
+                    $i++
                 }
             }
         }
@@ -133,6 +148,7 @@ function Main {
         $geneScript = Join-Path $ScriptDir "extract_genes.ps1"
         $geneArgs = @("-DataPath", $OutputPath)
         if ($Force) { $geneArgs += "-Force" }
+        if ($PanelId) { $geneArgs += @("-PanelId", $PanelId) }
         
         if (-not (Invoke-ExtractionScript -ScriptPath $geneScript -ScriptName "Gene Data Extraction" -Arguments $geneArgs)) {
             Write-Warning-Log "Gene extraction failed, but continuing with other extractions"
@@ -142,6 +158,7 @@ function Main {
             $processScript = Join-Path $ScriptDir "process_genes.ps1"
             $processArgs = @("-DataPath", $OutputPath)
             if ($Force) { $processArgs += "-Force" }
+            if ($PanelId) { $processArgs += @("-PanelId", $PanelId) }
             
             if (-not (Invoke-ExtractionScript -ScriptPath $processScript -ScriptName "Gene Data Processing" -Arguments $processArgs)) {
                 Write-Warning-Log "Gene processing failed, but continuing with other extractions"
