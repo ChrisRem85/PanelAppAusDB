@@ -2,8 +2,9 @@
 # This script orchestrates the complete data extraction process:
 # 1. Extracts panel list data
 # 2. Extracts detailed gene data for each panel
-# 3. Will extract STR data (placeholder for future implementation)
-# 4. Will extract region data (placeholder for future implementation)
+# 3. Processes gene data (converts JSON to TSV format)
+# 4. Will extract STR data (placeholder for future implementation)
+# 5. Will extract region data (placeholder for future implementation)
 
 param(
     [string]$OutputPath = "..\data",
@@ -136,9 +137,19 @@ function Main {
         if (-not (Invoke-ExtractionScript -ScriptPath $geneScript -ScriptName "Gene Data Extraction" -Arguments $geneArgs)) {
             Write-Warning-Log "Gene extraction failed, but continuing with other extractions"
             $success = $false
+        } else {
+            # Step 2b: Process gene data (convert JSON to TSV)
+            $processScript = Join-Path $ScriptDir "process_genes.ps1"
+            $processArgs = @("-DataPath", $OutputPath)
+            if ($Force) { $processArgs += "-Force" }
+            
+            if (-not (Invoke-ExtractionScript -ScriptPath $processScript -ScriptName "Gene Data Processing" -Arguments $processArgs)) {
+                Write-Warning-Log "Gene processing failed, but continuing with other extractions"
+                $success = $false
+            }
         }
     } else {
-        Write-Log "Skipping gene extraction (--SkipGenes specified)"
+        Write-Log "Skipping gene extraction and processing (--SkipGenes specified)"
     }
     
     # Step 3: Extract STR data (placeholder - future implementation)
@@ -176,7 +187,8 @@ function Main {
     Write-Log ""
     Write-Log "Data extraction summary:"
     Write-Log "  Panel list: Completed"
-    Write-Log "  Gene data: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
+    Write-Log "  Gene extraction: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
+    Write-Log "  Gene processing: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
     Write-Log "  STR data: $(if ($SkipStrs) { 'Skipped' } else { 'Attempted (future implementation)' })"
     Write-Log "  Region data: $(if ($SkipRegions) { 'Skipped' } else { 'Attempted (future implementation)' })"
 }
@@ -194,7 +206,7 @@ USAGE:
     .\extract_panels.ps1 [OPTIONS]
 
 OPTIONS:
-    -OutputPath PATH      Path to output directory (default: ..\data)
+    -OutputPath PATH     Path to output directory (default: ..\data)
     -SkipGenes           Skip gene data extraction
     -SkipStrs            Skip STR data extraction
     -SkipRegions         Skip region data extraction

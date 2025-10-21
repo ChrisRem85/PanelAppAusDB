@@ -56,35 +56,33 @@ Use the wrapper scripts to extract all data types (panel list + genes + STRs + r
 #### Windows PowerShell (Recommended for Windows users)
 
 ```powershell
-cd scripts
-
 # Set execution policy for current session (if needed)
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 
-# Complete extraction (panel list + genes + STRs + regions)
-.\extract_panels.ps1
+# Complete extraction (panel list + genes + processing)
+.\scripts\extract_panels.ps1
 
-# Skip specific data types
-.\extract_panels.ps1 -SkipGenes
-.\extract_panels.ps1 -SkipStrs -SkipRegions
+# Skip gene extraction (panel list only)
+.\scripts\extract_panels.ps1 -SkipGenes
+
+# Force re-download all data (ignore version tracking)
+.\scripts\extract_panels.ps1 -Force
 
 # With custom output path and verbose logging
-.\extract_panels.ps1 -OutputPath "C:\MyData" -Verbose
+.\scripts\extract_panels.ps1 -OutputPath "data" -Verbose
 ```
 
 #### Bash (Linux/macOS/WSL)
 
 ```bash
-cd scripts
-
 # Make scripts executable
 chmod +x scripts/extract_panels.sh scripts/extract_genes.sh scripts/process_genes.sh
 
-# Complete extraction workflow
+# Complete extraction workflow (panel list + genes + processing)
 ./scripts/extract_panels.sh
 
 # With custom output path
-./scripts/extract_panels.sh --output-path "/home/user/mydata"
+./scripts/extract_panels.sh --output-path "data"
 ```
 
 ### Manual Step-by-Step Extraction
@@ -96,10 +94,10 @@ If you prefer to run individual components manually:
 **PowerShell:**
 ```powershell
 # Run just the panel list extraction script
-.\extract_panel_list.ps1
+.\scripts\extract_panel_list.ps1
 
 # Or with custom output path
-.\extract_panel_list.ps1 -OutputPath "C:\MyData"
+.\scripts\extract_panel_list.ps1 -OutputPath "data"
 ```
 
 **Bash:**
@@ -115,19 +113,19 @@ After running the panel extraction, you can extract detailed gene data:
 **PowerShell:**
 ```powershell
 # After panel extraction, extract detailed gene data
-.\extract_genes.ps1
+.\scripts\extract_genes.ps1
 
 # Use specific data path
-.\extract_genes.ps1 -DataPath "C:\MyData"
+.\scripts\extract_genes.ps1 -DataPath "data"
 
 # Extract genes for specific panel ID only
-.\extract_genes.ps1 -PanelId 6
+.\scripts\extract_genes.ps1 -PanelId 6
 
 # Force re-download all panels (bypass version checking)
-.\extract_genes.ps1 -Force
+.\scripts\extract_genes.ps1 -Force
 
 # Combine parameters: specific panel with verbose logging
-.\extract_genes.ps1 -PanelId 6 -Force -Verbose
+.\scripts\extract_genes.ps1 -PanelId 6 -Force -Verbose
 ```
 
 **Bash:**
@@ -152,19 +150,19 @@ After extracting gene data, you can process it into TSV format with built-in val
 **PowerShell:**
 ```powershell
 # Process all panels (detects missing TSV files automatically)
-.\process_genes.ps1
+.\scripts\process_genes.ps1
 
 # Process specific panel ID only
-.\process_genes.ps1 -PanelId 6
+.\scripts\process_genes.ps1 -PanelId 6
 
 # Force reprocessing even if files are up-to-date
-.\process_genes.ps1 -Force
+.\scripts\process_genes.ps1 -Force
 
 # With verbose logging for detailed progress
-.\process_genes.ps1 -Verbose
+.\scripts\process_genes.ps1 -Verbose
 
 # Custom data path with specific panel
-.\process_genes.ps1 -DataPath "C:\MyData" -PanelId 6 -Verbose
+.\scripts\process_genes.ps1 -DataPath "data" -PanelId 6 -Verbose
 ```
 
 **Bash:**
