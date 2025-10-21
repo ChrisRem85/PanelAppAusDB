@@ -1,0 +1,298 @@
+# PanelApp Australia Gene Processing Script (PowerShell)
+# This script processes downloaded gene JSON files and extracts specific fields to TSV format
+# Processes all panels found in the data/panels directory
+
+param(
+    [string]$DataPath = "..\data",
+    [switch]$Verbose
+)
+
+# Configuration
+$ErrorActionPreference = "Stop"
+
+# Logging functions
+function Write-Log {
+    param([string]$Message, [string]$Level = "INFO")
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "ERROR" { "Red" }
+        "SUCCESS" { "Green" }
+        "WARNING" { "Yellow" }
+        default { "Blue" }
+    }
+    Write-Host "[$timestamp] " -NoNewline -ForegroundColor Blue
+    Write-Host $Message -ForegroundColor $color
+}
+
+function Write-Error-Log {
+    param([string]$Message)
+    Write-Log $Message "ERROR"
+}
+
+function Write-Success-Log {
+    param([string]$Message)
+    Write-Log $Message "SUCCESS"
+}
+
+function Write-Warning-Log {
+    param([string]$Message)
+    Write-Log $Message "WARNING"
+}
+
+# Get all panel directories
+function Get-PanelDirectories {
+    param([string]$DataPath)
+    
+    $panelsPath = Join-Path $DataPath "panels"
+    if (-not (Test-Path $panelsPath)) {
+        Write-Error-Log "Panels directory not found: $panelsPath"
+        return @()
+    }
+    
+    $panelDirs = Get-ChildItem -Path $panelsPath -Directory | Where-Object {
+        $_.Name -match '^\d+$'  # Only numeric directory names (panel IDs)
+    }
+    
+    return $panelDirs
+}
+
+# Process genes for a single panel
+function Process-PanelGenes {
+    param([string]$PanelPath, [string]$PanelId, [hashtable]$ExpectedCounts = @{})
+    
+    $genesJsonPath = Join-Path $PanelPath "genes\json"
+    $outputFile = Join-Path $PanelPath "genes\genes.tsv"
+    
+    if (-not (Test-Path $genesJsonPath)) {
+        Write-Warning-Log "No genes JSON directory found for panel $PanelId"
+        return $false
+    }
+    
+    # Get all JSON files in the genes directory
+    $jsonFiles = Get-ChildItem -Path $genesJsonPath -Filter "*.json" | Sort-Object Name
+    
+    if ($jsonFiles.Count -eq 0) {
+        Write-Warning-Log "No JSON files found for panel $PanelId"
+        return $false
+    }
+    
+    Write-Log "Processing $($jsonFiles.Count) JSON files for panel $PanelId"
+    
+    # Create output directory if it doesn't exist
+    $outputDir = Split-Path $outputFile -Parent
+    if (-not (Test-Path $outputDir)) {
+        New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+    }
+    
+    # Initialize results array
+    $allGenes = @()
+    
+    # Process each JSON file
+    foreach ($jsonFile in $jsonFiles) {
+        try {
+            $jsonContent = Get-Content $jsonFile.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+            
+            if ($jsonContent.results) {
+                foreach ($gene in $jsonContent.results) {
+                    # Extract required fields
+                    $hgnc_symbol = if ($gene.gene_data.hgnc_symbol) { $gene.gene_data.hgnc_symbol } else { "" }
+                    
+                    # Extract Ensembl ID from GRch38
+                    $ensembl_id = ""
+                    if ($gene.gene_data.ensembl_genes.GRch38) {
+                        # Get the first available version (typically "90" or similar)
+                        $grch38Versions = $gene.gene_data.ensembl_genes.GRch38 | Get-Member -MemberType NoteProperty
+                        if ($grch38Versions.Count -gt 0) {
+                            $firstVersion = $grch38Versions[0].Name
+                            $ensembl_id = $gene.gene_data.ensembl_genes.GRch38.$firstVersion.ensembl_id
+                        }
+                    }
+                    
+                    $confidence_level = if ($gene.confidence_level) { $gene.confidence_level } else { "" }
+                    $penetrance = if ($gene.penetrance) { $gene.penetrance } else { "" }
+                    $mode_of_pathogenicity = if ($gene.mode_of_pathogenicity) { $gene.mode_of_pathogenicity } else { "" }
+                    
+                    # Convert publications array to comma-separated string
+                    $publications = ""
+                    if ($gene.publications -and $gene.publications.Count -gt 0) {
+                        $publications = $gene.publications -join ","
+                    }
+                    
+                    $mode_of_inheritance = if ($gene.mode_of_inheritance) { $gene.mode_of_inheritance } else { "" }
+                    
+                    # Create gene object
+                    $geneObj = [PSCustomObject]@{
+                        hgnc_symbol = $hgnc_symbol
+                        ensembl_id = $ensembl_id
+                        confidence_level = $confidence_level
+                        penetrance = $penetrance
+                        mode_of_pathogenicity = $mode_of_pathogenicity
+                        publications = $publications
+                        mode_of_inheritance = $mode_of_inheritance
+                    }
+                    
+                    $allGenes += $geneObj
+                }
+            }
+        }
+        catch {
+            Write-Error-Log "Error processing file $($jsonFile.Name): $($_.Exception.Message)"
+            continue
+        }
+    }
+    
+    if ($allGenes.Count -eq 0) {
+        Write-Warning-Log "No genes found for panel $PanelId"
+        return $false
+    }
+    
+    # Convert to TSV and save
+    try {
+        $tsvContent = $allGenes | ConvertTo-Csv -Delimiter "`t" -NoTypeInformation
+        $tsvContent | Out-File -FilePath $outputFile -Encoding UTF8
+        
+        # Validate gene count if expected count is available
+        if ($ExpectedCounts.ContainsKey($PanelId)) {
+            $expectedCount = $ExpectedCounts[$PanelId]
+            $actualCount = $allGenes.Count
+            
+            if ($actualCount -eq $expectedCount) {
+                Write-Success-Log "Gene count validation PASSED for panel $PanelId`: $actualCount genes (matches expected)"
+            } else {
+                $difference = $actualCount - $expectedCount
+                $diffText = if ($difference -gt 0) { "+$difference" } else { "$difference" }
+                Write-Warning-Log "Gene count validation FAILED for panel $PanelId`: $actualCount genes (expected $expectedCount, difference: $diffText)"
+            }
+        } else {
+            Write-Log "Gene count validation skipped for panel $PanelId (no expected count available)"
+        }
+        
+        # Create version_processed.txt with current timestamp
+        $versionProcessedPath = Join-Path $PanelPath "version_processed.txt"
+        $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffffffZ"
+        $timestamp | Out-File -FilePath $versionProcessedPath -Encoding UTF8
+        
+        Write-Success-Log "Processed $($allGenes.Count) genes for panel $PanelId -> $outputFile"
+        return $true
+    }
+    catch {
+        Write-Error-Log "Error saving TSV file for panel $PanelId`: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# Main execution
+function Main {
+    Write-Log "Starting PanelApp Australia gene processing..."
+    
+    try {
+        if (-not (Test-Path $DataPath)) {
+            Write-Error-Log "Data path does not exist: $DataPath"
+            exit 1
+        }
+        
+        # Load panel list for gene count validation
+        $panelListPath = Join-Path $DataPath "panel_list.tsv"
+        $expectedCounts = @{}
+        
+        if (Test-Path $panelListPath) {
+            Write-Log "Loading expected gene counts from panel_list.tsv"
+            try {
+                $panelList = Import-Csv $panelListPath -Delimiter "`t"
+                foreach ($panel in $panelList) {
+                    $expectedCounts[$panel.id] = [int]$panel.number_of_genes
+                }
+                Write-Log "Loaded expected gene counts for $($expectedCounts.Count) panels"
+            }
+            catch {
+                Write-Warning-Log "Could not load panel_list.tsv for validation: $($_.Exception.Message)"
+            }
+        } else {
+            Write-Warning-Log "panel_list.tsv not found - gene count validation will be skipped"
+        }
+        
+        $panelDirs = Get-PanelDirectories -DataPath $DataPath
+        
+        if ($panelDirs.Count -eq 0) {
+            Write-Error-Log "No panel directories found"
+            exit 1
+        }
+        
+        Write-Log "Found $($panelDirs.Count) panel directories to process"
+        
+        $successful = 0
+        $failed = 0
+        $skipped = 0
+        $validationPassed = 0
+        $validationFailed = 0
+        $validationSkipped = 0
+        
+        foreach ($panelDir in $panelDirs) {
+            $panelId = $panelDir.Name
+            
+            if ($Verbose) {
+                Write-Log "Processing panel $panelId..."
+            }
+            
+            $result = Process-PanelGenes -PanelPath $panelDir.FullName -PanelId $panelId -ExpectedCounts $expectedCounts
+            
+            if ($result) {
+                $successful++
+                
+                # Track validation results
+                if ($expectedCounts.ContainsKey($panelId)) {
+                    # Check if validation passed by reading the gene count from the saved file
+                    $genesFile = Join-Path $panelDir.FullName "genes\genes.tsv"
+                    if (Test-Path $genesFile) {
+                        $actualCount = (Get-Content $genesFile | Measure-Object -Line).Lines - 1
+                        if ($actualCount -lt 0) { $actualCount = 0 }
+                        
+                        if ($actualCount -eq $expectedCounts[$panelId]) {
+                            $validationPassed++
+                        } else {
+                            $validationFailed++
+                        }
+                    }
+                } else {
+                    $validationSkipped++
+                }
+            } else {
+                $skipped++
+                if ($expectedCounts.ContainsKey($panelId)) {
+                    $validationSkipped++
+                } else {
+                    $validationSkipped++
+                }
+            }
+        }
+        
+        Write-Success-Log "Gene processing completed: $successful successful, $skipped skipped, $failed failed"
+        
+        # Validation summary
+        if ($expectedCounts.Count -gt 0) {
+            Write-Log ""
+            Write-Log "=== GENE COUNT VALIDATION SUMMARY ==="
+            Write-Success-Log "Validation passed: $validationPassed panels"
+            if ($validationFailed -gt 0) {
+                Write-Warning-Log "Validation failed: $validationFailed panels"
+            } else {
+                Write-Log "Validation failed: $validationFailed panels"
+            }
+            Write-Log "Validation skipped: $validationSkipped panels"
+            
+            $validationRate = if (($validationPassed + $validationFailed) -gt 0) {
+                [math]::Round(($validationPassed / ($validationPassed + $validationFailed)) * 100, 2)
+            } else { 0 }
+            Write-Log "Validation success rate: $validationRate%"
+        }
+        
+        Write-Log "Output files saved in individual panel directories as genes/genes.tsv"
+    }
+    catch {
+        Write-Error-Log "Script execution failed: $($_.Exception.Message)"
+        exit 1
+    }
+}
+
+# Run main function
+Main

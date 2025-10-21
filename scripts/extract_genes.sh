@@ -239,6 +239,11 @@ download_panel_genes() {
     
     log_message "Completed gene extraction for panel $panel_id ($((page-1)) pages)" "SUCCESS"
     
+    # Create version_extracted.txt with current timestamp
+    local genes_dir="$data_folder/panels/$panel_id/genes"
+    local version_extracted_path="$genes_dir/version_extracted.txt"
+    date -u '+%Y-%m-%dT%H:%M:%S.%6NZ' > "$version_extracted_path"
+    
     # Return extraction metadata as JSON
     local extraction_date
     extraction_date=$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')

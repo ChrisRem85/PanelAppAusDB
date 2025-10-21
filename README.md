@@ -10,7 +10,7 @@ A collection of scripts to automatically extract comprehensive data from the [Pa
 - **Incremental extraction** - only download panels with newer versions
 - **API version checking** to ensure compatibility
 - **Paginated data extraction** with automatic "next" page handling
-- **Multiple script formats** (Bash, PowerShell, Python)
+- **Multiple script formats** (Bash, PowerShell)
 - **Structured data output** (JSON files + TSV summary)
 - **Error handling and logging** with detailed progress information
 
@@ -27,11 +27,6 @@ A collection of scripts to automatically extract comprehensive data from the [Pa
 - Windows environment
 - Internet access
 
-### For Python Scripts (`extract_panels.py` / `extract_panel_list.py` / `extract_genes.py`)
-- Python 3.6 or later
-- `requests` library (`pip install requests`)
-- Cross-platform (Windows, Linux, macOS)
-
 ## Installation
 
 1. Clone this repository:
@@ -47,11 +42,6 @@ cd PanelAppAusDB
 # Install jq if not available
 # Ubuntu/Debian: sudo apt-get install jq curl
 # macOS: brew install jq curl
-```
-
-**For Python:**
-```bash
-pip install requests
 ```
 
 ## Usage
@@ -74,23 +64,10 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser  # If neede
 .\extract_panels.ps1 -OutputPath "C:\MyData" -Verbose
 ```
 
-**Using Python Wrapper (Cross-platform):**
-```bash
-cd scripts
-python extract_panels.py
-
-# Skip specific data types
-python extract_panels.py --skip-genes
-python extract_panels.py --skip-strs --skip-regions
-
-# With verbose logging and custom path
-python extract_panels.py --output-path /path/to/data --verbose
-```
-
 **Using Bash Wrapper (Linux/macOS/WSL):**
 ```bash
 cd scripts
-chmod +x extract_panels.sh extract_panel_list.sh extract_genes_incremental.sh
+chmod +x extract_panels.sh extract_panel_list.sh extract_genes.sh
 ./extract_panels.sh
 
 # Skip specific data types
@@ -120,18 +97,6 @@ cd scripts
 .\extract_panel_list.ps1
 ```
 
-**Using Python Script:**
-```bash
-cd scripts
-python extract_panel_list.py
-
-# With custom output path
-python extract_panel_list.py --output-path /path/to/custom/output
-
-# With verbose logging
-python extract_panel_list.py --verbose
-```
-
 ### Step 2: Extract Gene Data (Optional)
 
 After running the panel extraction, you can extract detailed gene data:
@@ -159,56 +124,70 @@ chmod +x extract_genes.sh
 .\extract_genes.ps1 -Verbose
 ```
 
-**Using Python Script:**
+### Step 3: Process Gene Data (Optional)
+
+After extracting gene data, you can process it into TSV format with built-in validation:
+
+**Using Bash Script:**
 ```bash
-python extract_genes.py
+chmod +x process_genes.sh
+./process_genes.sh
 
-# Use specific data folder
-python extract_genes.py --folder 20251017
-
-# With custom data path and verbose logging
-python extract_genes.py --data-path /path/to/data --verbose
+# With verbose logging
+./process_genes.sh --verbose
 ```
 
-### Incremental Gene Extraction (Recommended)
+**Using PowerShell Script:**
+```powershell
+.\process_genes.ps1
+
+# With verbose logging
+.\process_genes.ps1 -Verbose
+```
+
+The process_genes scripts:
+- ✅ **Convert JSON to TSV** format with extracted gene fields
+- ✅ **Validate gene counts** against panel_list.tsv automatically
+- ✅ **Log validation results** with detailed success/failure reporting
+- ✅ **Generate validation statistics** showing success rates and summaries
+- ✅ **Create version tracking** in `version_processed.txt` files
+- ✅ **Generate structured output** in `genes/genes.tsv` for each panel
+- ✅ **Color-coded logging** for easy identification of issues
+- ✅ **Comprehensive error handling** with detailed failure explanations
+
+**Validation Process:**
+The script automatically validates that the number of genes extracted matches the expected count from `panel_list.tsv`. For each panel, it:
+- Compares actual gene count in `genes.tsv` with expected count from panel list
+- Reports validation results with panel ID, expected vs actual counts
+- Logs detailed statistics including success rate and summary counts
+- Uses color-coded output (green for success, red for failures, yellow for warnings)
 
 For efficiency, use the incremental extraction scripts that only download panels with newer versions than previously extracted:
 
 **Using Bash Script:**
 ```bash
-./extract_genes_incremental.sh
+./extract_genes.sh
 
 # Force re-download all panels
-./extract_genes_incremental.sh --force
+./extract_genes.sh --force
 
 # Use specific data folder
-./extract_genes_incremental.sh --folder 20251017
+./extract_genes.sh --folder 20251017
 ```
 
 **Using PowerShell Script:**
 ```powershell
-.\extract_genes_incremental.ps1
+.\extract_genes.ps1
 
 # Force re-download all panels
-.\extract_genes_incremental.ps1 -Force
+.\extract_genes.ps1 -Force
 
 # Use specific data folder and verbose logging
-.\extract_genes_incremental.ps1 -Folder "20251017" -Verbose
-```
-
-**Using Python Script:**
-```bash
-python extract_genes_incremental.py
-
-# Force re-download all panels
-python extract_genes_incremental.py --force
-
-# Use specific data folder with verbose logging
-python extract_genes_incremental.py --folder 20251017 --verbose
+.\extract_genes.ps1 -Folder "20251017" -Verbose
 ```
 
 The incremental scripts:
-- ✅ **Track extraction history** in `extraction_history.json`
+- ✅ **Track extraction history** in `version_extracted.txt` files
 - ✅ **Compare version_created dates** to determine if panels need updating
 - ✅ **Skip unchanged panels** to save time and bandwidth
 - ✅ **Support force mode** to re-download all panels when needed
@@ -219,27 +198,44 @@ The scripts create the following folder structure:
 
 ```
 data/
-└── YYYYMMDD/                    # Date of execution (e.g., 20251017)
-    ├── panel_list/
-    │   └── json/
-    │       ├── panels_page_1.json
-    │       ├── panels_page_2.json
-    │       └── ...
-    ├── panels/                  # Individual panel data
-    │   ├── 3149/               # Panel ID folder
-    │   │   ├── version_created.txt    # Version tracking for incremental updates
-    │   │   ├── genes/
-    │   │   │   └── json/
-    │   │   │       ├── genes_page_1.json
-    │   │   │       └── ...
-    │   │   ├── strs/           # STR data (future implementation)
-    │   │   └── regions/        # Region data (future implementation)
-    │   └── 3150/               # Another panel
-    │       ├── version_created.txt
-    │       └── genes/
-    │           └── json/
-    │               └── genes_page_1.json
-    └── panel_list.tsv          # Extracted panel information (tab-separated)
+├── panel_list/
+│   └── json/
+│       ├── panels_page_1.json
+│       ├── panels_page_2.json
+│       └── ...
+├── panels/                      # Individual panel data
+│   ├── 3149/                   # Panel ID folder
+│   │   ├── version_created.txt         # Panel version tracking for incremental updates
+│   │   ├── version_processed.txt       # Processing timestamp (when genes converted to TSV)
+│   │   ├── genes/
+│   │   │   ├── json/
+│   │   │   │   ├── genes_page_1.json   # Raw gene data from API
+│   │   │   │   └── ...
+│   │   │   ├── genes.tsv               # Processed gene data (TSV format)
+│   │   │   └── version_extracted.txt   # Gene extraction timestamp
+│   │   ├── strs/                       # STR data (future implementation)
+│   │   └── regions/                    # Region data (future implementation)
+│   └── 3150/                   # Another panel
+│       ├── version_created.txt
+│       ├── version_processed.txt
+│       └── genes/
+│           ├── json/
+│           │   └── genes_page_1.json
+│           ├── genes.tsv
+│           └── version_extracted.txt
+└── panel_list.tsv              # Extracted panel information (tab-separated)
+```
+
+### File Descriptions
+
+| File | Purpose | Created By |
+|------|---------|------------|
+| `panel_list.tsv` | Summary of all panels with metadata | `extract_panel_list.*` scripts |
+| `version_created.txt` | Panel version from API for incremental updates | `extract_panel_list.*` scripts |
+| `version_extracted.txt` | Timestamp when genes were extracted | `extract_genes.*` scripts |
+| `version_processed.txt` | Timestamp when genes were processed to TSV | `process_genes.*` scripts |
+| `genes.tsv` | Processed gene data in tab-separated format | `process_genes.*` scripts |
+| `genes_page_*.json` | Raw gene data from API (paginated) | `extract_genes.*` scripts |
 ```
 
 ## Data Extracted
@@ -304,7 +300,6 @@ All scripts include comprehensive error handling:
 
 - **Bash script:** Colored console output with timestamps
 - **PowerShell script:** Colored console output with timestamps
-- **Python script:** Standard Python logging with configurable levels
 
 ## Contributing
 

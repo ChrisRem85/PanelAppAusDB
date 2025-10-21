@@ -237,6 +237,12 @@ function Get-PanelGenes {
         
         Write-Success-Log "Completed gene extraction for panel $panelId ($($page-1) pages)"
         
+        # Create version_extracted.txt with current timestamp
+        $genesDir = Join-Path $DataFolder "panels\$panelId\genes"
+        $versionExtractedPath = Join-Path $genesDir "version_extracted.txt"
+        $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffffffZ"
+        $timestamp | Out-File -FilePath $versionExtractedPath -Encoding UTF8
+        
         # Return extraction metadata
         return @{
             success = $true
