@@ -4,6 +4,7 @@
 
 param(
     [string]$DataPath = "..\data",
+    [string]$PanelId = "",
     [switch]$Force,
     [switch]$Verbose,
     [switch]$Help
@@ -26,12 +27,14 @@ USAGE:
 
 OPTIONS:
     -DataPath PATH      Path to data directory (default: ..\data)
+    -PanelId ID         Process only the specified panel ID (default: process all panels)
     -Force              Force processing even if files are up to date
     -Verbose            Enable verbose logging
     -Help               Show this help message
 
 EXAMPLES:
-    .\process_genes.ps1                          # Process genes with incremental logic
+    .\process_genes.ps1                          # Process all panels with incremental logic
+    .\process_genes.ps1 -PanelId 6               # Process only panel 6
     .\process_genes.ps1 -Force                   # Force process all panels
     .\process_genes.ps1 -DataPath "C:\MyData"    # Custom data path
     .\process_genes.ps1 -Verbose                 # Verbose logging
@@ -76,7 +79,7 @@ function Write-Warning-Log {
 
 # Get all panel directories
 function Get-PanelDirectories {
-    param([string]$DataPath)
+    param([string]$DataPath, [string]$PanelId = "")
     
     $panelsPath = Join-Path $DataPath "panels"
     if (-not (Test-Path $panelsPath)) {
@@ -84,11 +87,22 @@ function Get-PanelDirectories {
         return @()
     }
     
-    $panelDirs = Get-ChildItem -Path $panelsPath -Directory | Where-Object {
-        $_.Name -match '^\d+$'  # Only numeric directory names (panel IDs)
+    if ($PanelId) {
+        # Process only the specified panel
+        $specificPanelPath = Join-Path $panelsPath $PanelId
+        if (Test-Path $specificPanelPath) {
+            return @(Get-Item $specificPanelPath)
+        } else {
+            Write-Error-Log "Panel directory not found: $specificPanelPath"
+            return @()
+        }
+    } else {
+        # Process all panels
+        $panelDirs = Get-ChildItem -Path $panelsPath -Directory | Where-Object {
+            $_.Name -match '^\d+$'  # Only numeric directory names (panel IDs)
+        }
+        return $panelDirs
     }
-    
-    return $panelDirs
 }
 
 # Process genes for a single panel
@@ -184,6 +198,8 @@ function Process-PanelGenes {
     # Convert to TSV and save
     try {
         $tsvContent = $allGenes | ConvertTo-Csv -Delimiter "`t" -NoTypeInformation
+        # Remove quotation marks from CSV output
+        $tsvContent = $tsvContent | ForEach-Object { $_ -replace '"', '' }
         $tsvContent | Out-File -FilePath $outputFile -Encoding UTF8
         
         # Validate gene count if expected count is available
@@ -324,14 +340,22 @@ function Main {
             Write-Warning-Log "panel_list.tsv not found - gene count validation will be skipped"
         }
         
-        $panelDirs = Get-PanelDirectories -DataPath $DataPath
+        $panelDirs = Get-PanelDirectories -DataPath $DataPath -PanelId $PanelId
         
         if ($panelDirs.Count -eq 0) {
-            Write-Error-Log "No panel directories found"
+            if ($PanelId) {
+                Write-Error-Log "Panel directory not found for panel ID: $PanelId"
+            } else {
+                Write-Error-Log "No panel directories found"
+            }
             exit 1
         }
         
-        Write-Log "Found $($panelDirs.Count) panel directories to process"
+        if ($PanelId) {
+            Write-Log "Processing panel $PanelId"
+        } else {
+            Write-Log "Found $($panelDirs.Count) panel directories to process"
+        }
         
         $successful = 0
         $failed = 0

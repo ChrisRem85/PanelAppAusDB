@@ -5,7 +5,8 @@
 param(
     [string]$DataPath = "..\data",
     [switch]$Verbose,
-    [switch]$Force  # Force re-download all panels
+    [switch]$Force,  # Force re-download all panels
+    [string]$PanelId  # Extract genes for specific panel ID only
 )
 
 # Configuration
@@ -42,6 +43,24 @@ function Write-Success-Log {
 function Write-Warning-Log {
     param([string]$Message)
     Write-Log $Message "WARNING"
+}
+
+# Clear JSON directory to prevent inconsistencies from old files
+function Clear-JsonDirectory {
+    param([string]$JsonPath)
+    
+    if (Test-Path $JsonPath) {
+        Write-Log "Clearing existing JSON files from: $JsonPath"
+        $jsonFiles = Get-ChildItem -Path $JsonPath -Filter "*.json" -ErrorAction SilentlyContinue
+        if ($jsonFiles.Count -gt 0) {
+            $jsonFiles | Remove-Item -Force
+            Write-Success-Log "Removed $($jsonFiles.Count) existing JSON files"
+        } else {
+            Write-Log "No existing JSON files found to clear"
+        }
+    } else {
+        Write-Log "JSON directory does not exist yet: $JsonPath"
+    }
 }
 
 # Find the latest data folder
@@ -205,6 +224,9 @@ function Get-PanelGenes {
     $panelDir = Join-Path $DataFolder "panels\$panelId\genes\json"
     New-Item -ItemType Directory -Path $panelDir -Force | Out-Null
     
+    # Clear any existing JSON files to prevent inconsistencies
+    Clear-JsonDirectory -JsonPath $panelDir
+    
     # Download genes with pagination
     $geneUrl = "$BaseURL/$APIVersion/panels/$panelId/genes/"
     $page = 1
@@ -280,6 +302,17 @@ function Main {
         if ($panels.Count -eq 0) {
             Write-Error-Log "No panels found to process"
             exit 1
+        }
+        
+        # Filter for specific panel ID if provided
+        if ($PanelId) {
+            $originalCount = $panels.Count
+            $panels = $panels | Where-Object { $_.Id -eq $PanelId }
+            if ($panels.Count -eq 0) {
+                Write-Error-Log "Panel ID $PanelId not found in panel list"
+                exit 1
+            }
+            Write-Log "Filtering for specific panel ID: $PanelId (found 1 of $originalCount panels)"
         }
         
         # Filter panels that need updating

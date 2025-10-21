@@ -8,6 +8,7 @@ set -euo pipefail
 
 # Default values
 DATA_PATH="../data"
+PANEL_ID=""
 VERBOSE=false
 FORCE=false
 
@@ -42,12 +43,29 @@ log_message() {
 
 # Usage function
 usage() {
-    echo "Usage: $0 [OPTIONS]"
-    echo "Options:"
-    echo "  --data-path PATH    Path to data directory (default: ../data)"
-    echo "  --verbose           Enable verbose logging"
-    echo "  --force             Force processing even if files are up to date"
-    echo "  --help              Show this help message"
+    echo "PanelApp Australia Gene Processing Script"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "    This script processes downloaded gene JSON files and extracts specific fields to TSV format."
+    echo "    Only processes panels that need processing based on version timestamps."
+    echo ""
+    echo "USAGE:"
+    echo "    $0 [OPTIONS]"
+    echo ""
+    echo "OPTIONS:"
+    echo "    --data-path PATH    Path to data directory (default: ../data)"
+    echo "    --panel-id ID       Process only the specified panel ID (default: process all panels)"
+    echo "    --verbose           Enable verbose logging"
+    echo "    --force             Force processing even if files are up to date"
+    echo "    --help              Show this help message"
+    echo ""
+    echo "EXAMPLES:"
+    echo "    $0                          # Process all panels with incremental logic"
+    echo "    $0 --panel-id 6             # Process only panel 6"
+    echo "    $0 --force                  # Force process all panels"
+    echo "    $0 --data-path \"/path/data\" # Custom data path"
+    echo "    $0 --verbose                # Verbose logging"
+    echo ""
 }
 
 # Parse command line arguments
@@ -55,6 +73,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --data-path)
             DATA_PATH="$2"
+            shift 2
+            ;;
+        --panel-id)
+            PANEL_ID="$2"
             shift 2
             ;;
         --verbose)
@@ -85,21 +107,25 @@ fi
 
 # Get all panel directories
 get_panel_directories() {
-    local data_path="$1"
-    local panels_path="$data_path/panels"
+    local panel_id="$1"
+    local directories=()
     
-    if [[ ! -d "$panels_path" ]]; then
-        log_message "Panels directory not found: $panels_path" "ERROR"
-        return 1
+    if [[ -n "$panel_id" ]]; then
+        # Return specific panel directory if it exists
+        local panel_dir="$DATA_PATH/Panel$panel_id"
+        if [[ -d "$panel_dir" ]]; then
+            directories=("$panel_dir")
+        fi
+    else
+        # Return all panel directories
+        for dir in "$DATA_PATH"/Panel*/; do
+            if [[ -d "$dir" ]]; then
+                directories+=("${dir%/}")  # Remove trailing slash
+            fi
+        done
     fi
     
-    # Get only numeric directory names (panel IDs) and sort them numerically
-    find "$panels_path" -maxdepth 1 -type d -name '[0-9]*' | \
-    sed "s|$panels_path/||" | \
-    sort -n | \
-    while read -r panel_id; do
-        echo "$panel_id:$panels_path/$panel_id"
-    done
+    printf '%s\n' "${directories[@]}"
 }
 
 # Check if a panel needs processing
@@ -267,19 +293,27 @@ main() {
     
     # Get panel directories
     local panel_dirs_output
-    panel_dirs_output=$(get_panel_directories "$DATA_PATH") || {
+    panel_dirs_output=$(get_panel_directories "$PANEL_ID") || {
         log_message "Failed to get panel directories" "ERROR"
         exit 1
     }
     
     if [[ -z "$panel_dirs_output" ]]; then
-        log_message "No panel directories found" "ERROR"
+        if [[ -n "$PANEL_ID" ]]; then
+            log_message "Panel $PANEL_ID not found" "ERROR"
+        else
+            log_message "No panel directories found" "ERROR"
+        fi
         exit 1
     fi
     
     # Count panels
     local panel_count=$(echo "$panel_dirs_output" | wc -l)
-    log_message "Found $panel_count panel directories to process"
+    if [[ -n "$PANEL_ID" ]]; then
+        log_message "Processing panel $PANEL_ID"
+    else
+        log_message "Found $panel_count panel directories to process"
+    fi
     
     local successful=0
     local failed=0

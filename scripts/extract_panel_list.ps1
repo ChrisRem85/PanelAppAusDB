@@ -44,6 +44,24 @@ function Write-Warning-Log {
     Write-Log $Message "WARNING"
 }
 
+# Clear JSON directory to prevent inconsistencies from old files
+function Clear-JsonDirectory {
+    param([string]$JsonPath)
+    
+    if (Test-Path $JsonPath) {
+        Write-Log "Clearing existing JSON files from: $JsonPath"
+        $jsonFiles = Get-ChildItem -Path $JsonPath -Filter "*.json" -ErrorAction SilentlyContinue
+        if ($jsonFiles.Count -gt 0) {
+            $jsonFiles | Remove-Item -Force
+            Write-Success-Log "Removed $($jsonFiles.Count) existing JSON files"
+        } else {
+            Write-Log "No existing JSON files found to clear"
+        }
+    } else {
+        Write-Log "JSON directory does not exist yet: $JsonPath"
+    }
+}
+
 # Create output folder structure
 function New-OutputFolder {
     param([string]$OutputPath)
@@ -61,6 +79,9 @@ function New-OutputFolder {
     } else {
         Write-Log "Using existing folder structure: $jsonPath"
     }
+    
+    # Clear any existing JSON files to prevent inconsistencies
+    Clear-JsonDirectory -JsonPath $jsonPath
     
     return $OutputPath
 }
@@ -228,6 +249,7 @@ function Main {
         
         Write-Success-Log "Data extraction completed successfully!"
         Write-Log "Output directory: $outputDir"
+        exit 0
     }
     catch {
         Write-Error-Log "Script execution failed: $($_.Exception.Message)"

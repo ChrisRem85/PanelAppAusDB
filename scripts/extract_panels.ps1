@@ -68,14 +68,22 @@ function Invoke-ExtractionScript {
     Write-Log "Running $ScriptName..."
     
     try {
-        $params = @()
+        $params = @{}
+        
+        # Process arguments as key-value pairs
         if ($Arguments) {
-            $params += $Arguments
+            for ($i = 0; $i -lt $Arguments.Length; $i += 2) {
+                if ($i + 1 -lt $Arguments.Length) {
+                    $paramName = $Arguments[$i] -replace '^-', ''  # Remove leading dash
+                    $paramValue = $Arguments[$i + 1]
+                    $params[$paramName] = $paramValue
+                }
+            }
         }
         
         # Add verbose flag if specified
         if ($Verbose) {
-            $params += "-Verbose"
+            $params['Verbose'] = $true
         }
         
         $result = & $ScriptPath @params
