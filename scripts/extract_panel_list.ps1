@@ -207,9 +207,8 @@ function Export-PanelInfo {
     }
 }
 
-}
-
-# Run main function
+# Main execution
+function Main {
     Write-Log "Starting PanelApp Australia data extraction..."
     
     try {
@@ -226,12 +225,6 @@ function Export-PanelInfo {
         Export-PanelInfo -OutputDir $outputDir
         
         Write-Success-Log "Data extraction completed successfully!"
-        Write-Log "Output directory: $outputDir"
-    }
-    catch {
-        Write-Error-Log "Script execution failed: $($_.Exception.Message)"
-        exit 1
-    }
         Write-Log "Output directory: $outputDir"
     }
     catch {
