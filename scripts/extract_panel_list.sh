@@ -36,6 +36,24 @@ warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
+# Clear JSON directory to prevent inconsistencies from old files
+clear_json_directory() {
+    local json_path="$1"
+    
+    if [ -d "$json_path" ]; then
+        log "Clearing existing JSON files from: $json_path"
+        local json_files=($(find "$json_path" -name "*.json" 2>/dev/null))
+        if [ ${#json_files[@]} -gt 0 ]; then
+            rm -f "$json_path"/*.json 2>/dev/null || true
+            success "Removed ${#json_files[@]} existing JSON files"
+        else
+            log "No existing JSON files found to clear"
+        fi
+    else
+        log "JSON directory does not exist yet: $json_path"
+    fi
+}
+
 # Check if required commands are available
 check_dependencies() {
     local missing_deps=()
@@ -71,6 +89,9 @@ create_output_folder() {
     else
         log "Using existing folder structure: $base_dir/panel_list/json"
     fi
+    
+    # Clear any existing JSON files to prevent inconsistencies
+    clear_json_directory "$base_dir/panel_list/json"
     
     echo "$base_dir"
 }

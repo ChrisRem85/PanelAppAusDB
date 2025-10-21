@@ -136,12 +136,19 @@ test_panel_needs_processing() {
     local version_processed_path="$genes_path/version_processed.txt"
     local version_created_path="$panel_path/version_created.txt"
     local version_extracted_path="$panel_path/version_extracted.txt"
+    local genes_tsv_path="$genes_path/genes.tsv"
     
     log_message "Checking if panel $panel_id needs processing..." "INFO"
     
     # If force is specified, always process
     if [[ "$FORCE" == "true" ]]; then
         log_message "Force parameter specified - panel will be processed" "WARNING"
+        return 0
+    fi
+    
+    # If genes.tsv doesn't exist, processing is needed
+    if [[ ! -f "$genes_tsv_path" ]]; then
+        log_message "Panel $panel_id needs processing: genes.tsv not found" "INFO"
         return 0
     fi
     

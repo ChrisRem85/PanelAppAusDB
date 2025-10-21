@@ -29,85 +29,86 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 
 ## Step 2: Gene Data Extraction (Optional)
 
-### Standard Gene Extraction (Downloads all panels)
+### Gene Data Extraction (Incremental by default)
 
 # After panel extraction, extract detailed gene data
 .\extract_genes.ps1
 
-# Use specific data folder
-.\extract_genes.ps1 -Folder "20251017"
+# Use specific data path
+.\extract_genes.ps1 -DataPath "C:\MyData"
 
-# With verbose logging
-.\extract_genes.ps1 -Verbose
-
-### Incremental Gene Extraction (Recommended - Only downloads updated panels)
-
-# Extract only panels with newer versions than last extraction
-.\extract_genes_incremental.ps1
+# Extract genes for specific panel ID only
+.\extract_genes.ps1 -PanelId 6
 
 # Force re-download all panels (bypass version checking)
-.\extract_genes_incremental.ps1 -Force
+.\extract_genes.ps1 -Force
 
-# Use specific data folder with verbose logging
-.\extract_genes_incremental.ps1 -Folder "20251017" -Verbose
+# Combine parameters: specific panel with verbose logging
+.\extract_genes.ps1 -PanelId 6 -Force -Verbose
 
-## Python (Cross-platform)
+### Step 3: Process Gene Data (Convert JSON to TSV)
 
-# Install dependencies
-pip install -r ..\requirements.txt
+# Process all panels (detects missing TSV files automatically)
+.\process_genes.ps1
 
-# Step 1: Extract panels
-python extract_panels.py
+# Process specific panel ID only
+.\process_genes.ps1 -PanelId 6
 
-# With verbose output
-python extract_panels.py --verbose
+# Force reprocessing even if files are up-to-date
+.\process_genes.ps1 -Force
 
-# With custom output path
-python extract_panels.py --output-path "C:\MyData"
+# With verbose logging for detailed progress
+.\process_genes.ps1 -Verbose
 
-# Step 2a: Standard gene extraction
-python extract_genes.py
+# Custom data path with specific panel
+.\process_genes.ps1 -DataPath "C:\MyData" -PanelId 6 -Verbose
 
-# Use specific data folder
-python extract_genes.py --folder 20251017
+## Python (Alternative - if available)
 
-# With custom data path and verbose logging
-python extract_genes.py --data-path "C:\MyData" --verbose
+# Note: Python scripts are not included in this repository
+# This project uses PowerShell and Bash scripts only
+# If you have Python scripts, they would follow similar patterns:
 
-# Step 2b: Incremental gene extraction (Recommended)
-python extract_genes_incremental.py
-
-# Force re-download all panels
-python extract_genes_incremental.py --force
-
-# Use specific data folder with verbose logging
-python extract_genes_incremental.py --folder 20251017 --verbose
+# python scripts/extract_panels.py
+# python scripts/extract_genes.py --panel-id 6  
+# python scripts/process_genes.py
 
 ## Bash (Linux/macOS/WSL)
 
 # Make scripts executable
-chmod +x extract_panels.sh extract_genes.sh extract_genes_incremental.sh
+chmod +x scripts/extract_panels.sh scripts/extract_genes.sh scripts/process_genes.sh
 
-# Step 1: Extract panels
-./extract_panels.sh
+# Complete extraction workflow
+./scripts/extract_panels.sh
 
-# Step 2a: Standard gene extraction
-./extract_genes.sh
+# With custom output path
+./scripts/extract_panels.sh --output-path "/home/user/mydata"
+
+# Individual scripts:
+
+# Extract panel list only
+./scripts/extract_panel_list.sh
+
+# Extract genes for all panels
+./scripts/extract_genes.sh
+
+# Extract genes for specific panel
+./scripts/extract_genes.sh --panel-id 6
 
 # Use specific data folder
-./extract_genes.sh --folder 20251017
+./scripts/extract_genes.sh --folder 20251017
 
 # With verbose logging
-./extract_genes.sh --verbose
+./scripts/extract_genes.sh --verbose
 
-# Step 2b: Incremental gene extraction (Recommended)
-./extract_genes_incremental.sh
+# Process genes (JSON to TSV)
+./scripts/process_genes.sh
 
-# Force re-download all panels  
-./extract_genes_incremental.sh --force
+# Process specific panel
+./scripts/process_genes.sh --panel-id 6
 
-# Use specific folder with verbose logging
-./extract_genes_incremental.sh --folder 20251017 --verbose
+# Force reprocessing
+./scripts/process_genes.sh --force
 
 ## Output Structure Example
 
@@ -122,13 +123,15 @@ chmod +x extract_panels.sh extract_genes.sh extract_genes_incremental.sh
 #     ├── panels/                 # Individual panel gene data
 #     │   ├── 3149/              # Panel ID folder  
 #     │   │   └── genes/
-#     │   │       └── json/
-#     │   │           └── genes_page_1.json
+#     │   │       ├── json/
+#     │   │       │   └── genes_page_1.json
+#     │   │       └── genes.tsv   # Processed gene data (tab-separated)
 #     │   └── 3150/              # Another panel
 #     │       └── genes/
-#     │           └── json/
-#     │               └── genes_page_1.json
-#     └── panel_list.tsv         # Extracted data (tab-separated)
+#     │           ├── json/
+#     │           │   └── genes_page_1.json
+#     │           └── genes.tsv   # Processed gene data (tab-separated)
+#     └── panel_list.tsv         # Panel list (tab-separated)
 
 ## API Information Retrieved
 

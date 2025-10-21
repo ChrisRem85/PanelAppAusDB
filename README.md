@@ -8,6 +8,9 @@ A collection of scripts to automatically extract comprehensive data from the [Pa
 - **Panel list extraction** with automatic date folder creation (format: YYYYMMDD)
 - **Version tracking** per panel in individual directories  
 - **Incremental extraction** - only download panels with newer versions
+- **JSON directory clearing** - prevents inconsistencies from old files before downloads
+- **Missing file detection** - automatically processes panels when TSV files are missing
+- **Panel-specific filtering** - extract genes for specific panel IDs only
 - **API version checking** to ensure compatibility
 - **Paginated data extraction** with automatic "next" page handling
 - **Multiple script formats** (Bash, PowerShell)
@@ -113,10 +116,13 @@ chmod +x extract_genes.sh
 ./extract_genes.sh
 
 # Use specific data folder
-./extract_genes.sh --folder 20251017
+./extract_genes.sh --data-path /path/to/data
 
-# With verbose logging
-./extract_genes.sh --verbose
+# Extract genes for specific panel ID only
+./extract_genes.sh --panel-id 6
+
+# With verbose logging and force re-download
+./extract_genes.sh --force --verbose
 ```
 
 **Using PowerShell Script:**
@@ -124,10 +130,13 @@ chmod +x extract_genes.sh
 .\extract_genes.ps1
 
 # Use specific data folder
-.\extract_genes.ps1 -Folder "20251017"
+.\extract_genes.ps1 -DataPath "C:\MyData"
 
-# With verbose logging
-.\extract_genes.ps1 -Verbose
+# Extract genes for specific panel ID only
+.\extract_genes.ps1 -PanelId 6
+
+# With verbose logging and force re-download
+.\extract_genes.ps1 -Force -Verbose
 ```
 
 ### Step 3: Process Gene Data (Optional)
@@ -153,6 +162,7 @@ chmod +x process_genes.sh
 
 The process_genes scripts:
 - ✅ **Convert JSON to TSV** format with extracted gene fields
+- ✅ **Detect missing TSV files** and automatically regenerate them
 - ✅ **Validate gene counts** against panel_list.tsv automatically
 - ✅ **Log validation results** with detailed success/failure reporting
 - ✅ **Generate validation statistics** showing success rates and summaries
@@ -177,8 +187,11 @@ For efficiency, use the incremental extraction scripts that only download panels
 # Force re-download all panels
 ./extract_genes.sh --force
 
-# Use specific data folder
-./extract_genes.sh --folder 20251017
+# Extract specific panel only with verbose logging
+./extract_genes.sh --panel-id 6 --verbose
+
+# Use custom data path
+./extract_genes.sh --data-path /path/to/data --force
 ```
 
 **Using PowerShell Script:**
@@ -188,8 +201,11 @@ For efficiency, use the incremental extraction scripts that only download panels
 # Force re-download all panels
 .\extract_genes.ps1 -Force
 
-# Use specific data folder and verbose logging
-.\extract_genes.ps1 -Folder "20251017" -Verbose
+# Extract specific panel only with verbose logging
+.\extract_genes.ps1 -PanelId 6 -Verbose
+
+# Use custom data path
+.\extract_genes.ps1 -DataPath "C:\MyData" -Force
 ```
 
 The incremental scripts:
@@ -197,6 +213,8 @@ The incremental scripts:
 - ✅ **Compare version_created dates** to determine if panels need updating
 - ✅ **Skip unchanged panels** to save time and bandwidth
 - ✅ **Support force mode** to re-download all panels when needed
+- ✅ **Clear JSON directories** before downloads to prevent inconsistencies from old files
+- ✅ **Panel-specific filtering** with `-PanelId` / `--panel-id` parameter for targeted extraction
 
 ## Output Structure
 

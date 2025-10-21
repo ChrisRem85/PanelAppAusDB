@@ -243,12 +243,19 @@ function Test-PanelNeedsProcessing {
     $versionProcessedPath = Join-Path $genesPath "version_processed.txt"
     $versionCreatedPath = Join-Path $PanelPath "version_created.txt"
     $versionExtractedPath = Join-Path $PanelPath "version_extracted.txt"
+    $genesTsvPath = Join-Path $genesPath "genes.tsv"
     
     Write-Log "Checking if panel $PanelId needs processing..." -Level "Info"
     
     # If Force is specified, always process
     if ($Force) {
         Write-Log "Force parameter specified - panel will be processed" -Level "Warning"
+        return $true
+    }
+    
+    # If genes.tsv doesn't exist, processing is needed
+    if (-not (Test-Path $genesTsvPath)) {
+        Write-Log "Panel $PanelId needs processing: genes.tsv not found" -Level "Info"
         return $true
     }
     

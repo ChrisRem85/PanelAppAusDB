@@ -42,6 +42,24 @@ log_message() {
     esac
 }
 
+# Clear JSON directory to prevent inconsistencies from old files
+clear_json_directory() {
+    local json_path="$1"
+    
+    if [ -d "$json_path" ]; then
+        log_message "Clearing existing JSON files from: $json_path" "INFO"
+        local json_files=($(find "$json_path" -name "*.json" 2>/dev/null))
+        if [ ${#json_files[@]} -gt 0 ]; then
+            rm -f "$json_path"/*.json 2>/dev/null || true
+            log_message "Removed ${#json_files[@]} existing JSON files" "SUCCESS"
+        else
+            log_message "No existing JSON files found to clear" "INFO"
+        fi
+    else
+        log_message "JSON directory does not exist yet: $json_path" "INFO"
+    fi
+}
+
 # Show usage information
 show_usage() {
     cat << EOF
@@ -52,7 +70,7 @@ Only downloads panels that have been updated since last extraction.
 
 OPTIONS:
     --data-path PATH    Path to data directory (default: ../data)
-
+    --panel-id ID       Extract genes for specific panel ID only
     --force             Force re-download all panels
     --verbose           Enable verbose logging
     --help             Show this help message
@@ -74,6 +92,10 @@ parse_args() {
                 shift 2
                 ;;
 
+            --panel-id)
+                PANEL_ID="$2"
+                shift 2
+                ;;
             --force)
                 FORCE=1
                 shift
@@ -194,6 +216,9 @@ download_panel_genes() {
     local panel_dir="$data_folder/panels/$panel_id/genes/json"
     mkdir -p "$panel_dir"
     
+    # Clear any existing JSON files to prevent inconsistencies
+    clear_json_directory "$panel_dir"
+    
     # Download genes with pagination
     local gene_url="$BASE_URL/$API_VERSION/panels/$panel_id/genes/"
     local page=1
@@ -282,6 +307,11 @@ main() {
         exit 1
     fi
     
+    # Display filtering information if panel ID is specified
+    if [[ -n "$PANEL_ID" ]]; then
+        log_message "Filtering for specific panel ID: $PANEL_ID" "INFO"
+    fi
+    
     # Read panel data and filter panels that need updating
     local panels_to_update=()
     local total_panels=0
@@ -289,6 +319,11 @@ main() {
     while IFS=$'\t' read -r id name version version_created; do
         # Skip header line
         if [[ "$id" == "id" ]]; then
+            continue
+        fi
+        
+        # Filter for specific panel ID if provided
+        if [[ -n "$PANEL_ID" && "$id" != "$PANEL_ID" ]]; then
             continue
         fi
         
