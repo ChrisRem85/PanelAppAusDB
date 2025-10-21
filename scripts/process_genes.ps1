@@ -4,11 +4,46 @@
 
 param(
     [string]$DataPath = "..\data",
-    [switch]$Verbose
+    [switch]$Force,
+    [switch]$Verbose,
+    [switch]$Help
 )
 
 # Configuration
 $ErrorActionPreference = "Stop"
+
+# Show usage information
+function Show-Usage {
+    Write-Host @"
+PanelApp Australia Gene Processing Script
+
+DESCRIPTION:
+    This script processes downloaded gene JSON files and extracts specific fields to TSV format.
+    Only processes panels that need processing based on version timestamps.
+
+USAGE:
+    .\process_genes.ps1 [OPTIONS]
+
+OPTIONS:
+    -DataPath PATH      Path to data directory (default: ..\data)
+    -Force              Force processing even if files are up to date
+    -Verbose            Enable verbose logging
+    -Help               Show this help message
+
+EXAMPLES:
+    .\process_genes.ps1                          # Process genes with incremental logic
+    .\process_genes.ps1 -Force                   # Force process all panels
+    .\process_genes.ps1 -DataPath "C:\MyData"    # Custom data path
+    .\process_genes.ps1 -Verbose                 # Verbose logging
+
+"@
+}
+
+# Handle help parameter
+if ($Help) {
+    Show-Usage
+    exit 0
+}
 
 # Logging functions
 function Write-Log {
@@ -168,7 +203,7 @@ function Process-PanelGenes {
         }
         
         # Create version_processed.txt with current timestamp
-        $versionProcessedPath = Join-Path $PanelPath "version_processed.txt"
+        $versionProcessedPath = Join-Path $outputDir "version_processed.txt"
         $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffffffZ"
         $timestamp | Out-File -FilePath $versionProcessedPath -Encoding UTF8
         
@@ -179,6 +214,84 @@ function Process-PanelGenes {
         Write-Error-Log "Error saving TSV file for panel $PanelId`: $($_.Exception.Message)"
         return $false
     }
+}
+
+# Function to check if a panel needs processing
+function Test-PanelNeedsProcessing {
+    param(
+        [string]$PanelPath,
+        [string]$PanelId
+    )
+    
+    $genesPath = Join-Path $PanelPath "genes"
+    $versionProcessedPath = Join-Path $genesPath "version_processed.txt"
+    $versionCreatedPath = Join-Path $PanelPath "version_created.txt"
+    $versionExtractedPath = Join-Path $PanelPath "version_extracted.txt"
+    
+    Write-Log "Checking if panel $PanelId needs processing..." -Level "Info"
+    
+    # If Force is specified, always process
+    if ($Force) {
+        Write-Log "Force parameter specified - panel will be processed" -Level "Warning"
+        return $true
+    }
+    
+    # If version_processed.txt doesn't exist, processing is needed
+    if (-not (Test-Path $versionProcessedPath)) {
+        Write-Log "Panel $PanelId needs processing: version_processed.txt not found" -Level "Info"
+        return $true
+    }
+    
+    # Get processed date
+    try {
+        $processedContent = Get-Content $versionProcessedPath -Raw -Encoding UTF8
+        $processedDateStr = $processedContent.Trim()
+        $processedDate = [DateTime]::Parse($processedDateStr)
+        Write-Log "Panel $PanelId processed date: $processedDateStr" -Level "Debug"
+    }
+    catch {
+        Write-Log "Panel $PanelId needs processing: Invalid processed date format" -Level "Warning"
+        return $true
+    }
+    
+    # Check against version_created.txt
+    if (Test-Path $versionCreatedPath) {
+        try {
+            $createdContent = Get-Content $versionCreatedPath -Raw -Encoding UTF8
+            $createdDateStr = $createdContent.Trim()
+            $createdDate = [DateTime]::Parse($createdDateStr)
+            
+            if ($processedDate -lt $createdDate) {
+                Write-Log "Panel $PanelId needs processing: processed date ($processedDateStr) is older than created date ($createdDateStr)" -Level "Info"
+                return $true
+            }
+        }
+        catch {
+            Write-Log "Panel $PanelId needs processing: Invalid created date format" -Level "Warning"
+            return $true
+        }
+    }
+    
+    # Check against version_extracted.txt
+    if (Test-Path $versionExtractedPath) {
+        try {
+            $extractedContent = Get-Content $versionExtractedPath -Raw -Encoding UTF8
+            $extractedDateStr = $extractedContent.Trim()
+            $extractedDate = [DateTime]::Parse($extractedDateStr)
+            
+            if ($processedDate -lt $extractedDate) {
+                Write-Log "Panel $PanelId needs processing: processed date ($processedDateStr) is older than extracted date ($extractedDateStr)" -Level "Info"
+                return $true
+            }
+        }
+        catch {
+            Write-Log "Panel $PanelId needs processing: Invalid extracted date format" -Level "Warning"
+            return $true
+        }
+    }
+    
+    Write-Log "Panel $PanelId is up to date" -Level "Success"
+    return $false
 }
 
 # Main execution
@@ -192,7 +305,7 @@ function Main {
         }
         
         # Load panel list for gene count validation
-        $panelListPath = Join-Path $DataPath "panel_list.tsv"
+        $panelListPath = Join-Path $DataPath "panel_list\panel_list.tsv"
         $expectedCounts = @{}
         
         if (Test-Path $panelListPath) {
@@ -229,6 +342,12 @@ function Main {
         
         foreach ($panelDir in $panelDirs) {
             $panelId = $panelDir.Name
+            
+            # Check if panel needs processing
+            if (-not (Test-PanelNeedsProcessing -PanelPath $panelDir.FullName -PanelId $panelId)) {
+                $skipped++
+                continue
+            }
             
             if ($Verbose) {
                 Write-Log "Processing panel $panelId..."

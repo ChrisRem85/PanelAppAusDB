@@ -276,7 +276,7 @@ main() {
     log_message "Using data folder: $data_folder"
     
     # Check for required files
-    local tsv_file="$data_folder/panel_list.tsv"
+    local tsv_file="$data_folder/panel_list/panel_list.tsv"
     if [[ ! -f "$tsv_file" ]]; then
         log_message "Panel list file not found: $tsv_file" "ERROR"
         exit 1

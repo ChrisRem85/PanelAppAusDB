@@ -98,7 +98,7 @@ function Update-PanelVersionTracking {
 function Read-PanelData {
     param([string]$DataFolder)
     
-    $tsvFile = Join-Path $DataFolder "panel_list.tsv"
+    $tsvFile = Join-Path $DataFolder "panel_list\panel_list.tsv"
     
     if (-not (Test-Path $tsvFile)) {
         Write-Error-Log "Panel list file not found: $tsvFile"

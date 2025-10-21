@@ -9,6 +9,7 @@ set -euo pipefail
 # Default values
 DATA_PATH="../data"
 VERBOSE=false
+FORCE=false
 
 # Colors for output
 RED='\033[0;31m'
@@ -45,6 +46,7 @@ usage() {
     echo "Options:"
     echo "  --data-path PATH    Path to data directory (default: ../data)"
     echo "  --verbose           Enable verbose logging"
+    echo "  --force             Force processing even if files are up to date"
     echo "  --help              Show this help message"
 }
 
@@ -57,6 +59,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --verbose)
             VERBOSE=true
+            shift
+            ;;
+        --force)
+            FORCE=true
             shift
             ;;
         --help)
@@ -94,6 +100,68 @@ get_panel_directories() {
     while read -r panel_id; do
         echo "$panel_id:$panels_path/$panel_id"
     done
+}
+
+# Check if a panel needs processing
+test_panel_needs_processing() {
+    local panel_id="$1"
+    local panel_path="$2"
+    local genes_path="$panel_path/genes"
+    local version_processed_path="$genes_path/version_processed.txt"
+    local version_created_path="$panel_path/version_created.txt"
+    local version_extracted_path="$panel_path/version_extracted.txt"
+    
+    log_message "Checking if panel $panel_id needs processing..." "INFO"
+    
+    # If force is specified, always process
+    if [[ "$FORCE" == "true" ]]; then
+        log_message "Force parameter specified - panel will be processed" "WARNING"
+        return 0
+    fi
+    
+    # If version_processed.txt doesn't exist, processing is needed
+    if [[ ! -f "$version_processed_path" ]]; then
+        log_message "Panel $panel_id needs processing: version_processed.txt not found" "INFO"
+        return 0
+    fi
+    
+    # Get processed date
+    local processed_date_str
+    if ! processed_date_str=$(cat "$version_processed_path" 2>/dev/null | tr -d '\n\r'); then
+        log_message "Panel $panel_id needs processing: Cannot read processed date" "WARNING"
+        return 0
+    fi
+    
+    # Check against version_created.txt
+    if [[ -f "$version_created_path" ]]; then
+        local created_date_str
+        if created_date_str=$(cat "$version_created_path" 2>/dev/null | tr -d '\n\r'); then
+            if [[ "$processed_date_str" < "$created_date_str" ]]; then
+                log_message "Panel $panel_id needs processing: processed date ($processed_date_str) is older than created date ($created_date_str)" "INFO"
+                return 0
+            fi
+        else
+            log_message "Panel $panel_id needs processing: Cannot read created date" "WARNING"
+            return 0
+        fi
+    fi
+    
+    # Check against version_extracted.txt
+    if [[ -f "$version_extracted_path" ]]; then
+        local extracted_date_str
+        if extracted_date_str=$(cat "$version_extracted_path" 2>/dev/null | tr -d '\n\r'); then
+            if [[ "$processed_date_str" < "$extracted_date_str" ]]; then
+                log_message "Panel $panel_id needs processing: processed date ($processed_date_str) is older than extracted date ($extracted_date_str)" "INFO"
+                return 0
+            fi
+        else
+            log_message "Panel $panel_id needs processing: Cannot read extracted date" "WARNING"
+            return 0
+        fi
+    fi
+    
+    log_message "Panel $panel_id is up to date" "SUCCESS"
+    return 1
 }
 
 # Process genes for a single panel
@@ -181,7 +249,7 @@ process_panel_genes() {
     mv "$temp_file" "$output_file"
     
     # Create version_processed.txt with current timestamp
-    local version_processed_path="$panel_path/version_processed.txt"
+    local version_processed_path="$panel_path/genes/version_processed.txt"
     date -u '+%Y-%m-%dT%H:%M:%S.%6NZ' > "$version_processed_path"
     
     log_message "Processed $gene_count genes for panel $panel_id -> $output_file" "SUCCESS"
@@ -214,10 +282,17 @@ main() {
     log_message "Found $panel_count panel directories to process"
     
     local successful=0
+    local failed=0
     local skipped=0
     
     # Process each panel
     while IFS=':' read -r panel_id panel_path; do
+        # Check if panel needs processing
+        if ! test_panel_needs_processing "$panel_id" "$panel_path"; then
+            skipped=$((skipped + 1))
+            continue
+        fi
+        
         if [[ "$VERBOSE" == true ]]; then
             log_message "Processing panel $panel_id..."
         fi
@@ -225,11 +300,11 @@ main() {
         if process_panel_genes "$panel_id" "$panel_path"; then
             successful=$((successful + 1))
         else
-            skipped=$((skipped + 1))
+            failed=$((failed + 1))
         fi
     done <<< "$panel_dirs_output"
     
-    log_message "Gene processing completed: $successful successful, $skipped skipped" "SUCCESS"
+    log_message "Gene processing completed: $successful successful, $skipped skipped, $failed failed" "SUCCESS"
     log_message "Output files saved in individual panel directories as genes/genes.tsv"
 }
 

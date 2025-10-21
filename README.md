@@ -60,6 +60,9 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser  # If neede
 .\extract_panels.ps1 -SkipGenes
 .\extract_panels.ps1 -SkipStrs -SkipRegions
 
+# Force re-download all data (ignore version tracking)
+.\extract_panels.ps1 -Force
+
 # With verbose logging and custom path
 .\extract_panels.ps1 -OutputPath "C:\MyData" -Verbose
 ```
@@ -73,6 +76,9 @@ chmod +x extract_panels.sh extract_panel_list.sh extract_genes.sh
 # Skip specific data types
 ./extract_panels.sh --skip-genes
 ./extract_panels.sh --skip-strs --skip-regions
+
+# Force re-download all data (ignore version tracking)
+./extract_panels.sh --force
 
 # With verbose logging and custom path
 ./extract_panels.sh --output-path /path/to/data --verbose
@@ -206,23 +212,23 @@ data/
 ├── panels/                      # Individual panel data
 │   ├── 3149/                   # Panel ID folder
 │   │   ├── version_created.txt         # Panel version tracking for incremental updates
-│   │   ├── version_processed.txt       # Processing timestamp (when genes converted to TSV)
 │   │   ├── genes/
 │   │   │   ├── json/
 │   │   │   │   ├── genes_page_1.json   # Raw gene data from API
 │   │   │   │   └── ...
 │   │   │   ├── genes.tsv               # Processed gene data (TSV format)
-│   │   │   └── version_extracted.txt   # Gene extraction timestamp
+│   │   │   ├── version_extracted.txt   # Gene extraction timestamp
+│   │   │   └── version_processed.txt   # Processing timestamp (when genes converted to TSV)
 │   │   ├── strs/                       # STR data (future implementation)
 │   │   └── regions/                    # Region data (future implementation)
 │   └── 3150/                   # Another panel
 │       ├── version_created.txt
-│       ├── version_processed.txt
 │       └── genes/
 │           ├── json/
 │           │   └── genes_page_1.json
 │           ├── genes.tsv
-│           └── version_extracted.txt
+│           ├── version_extracted.txt
+│           └── version_processed.txt
 └── panel_list.tsv              # Extracted panel information (tab-separated)
 ```
 

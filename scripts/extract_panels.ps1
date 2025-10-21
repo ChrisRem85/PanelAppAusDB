@@ -10,6 +10,7 @@ param(
     [switch]$SkipGenes,
     [switch]$SkipStrs,
     [switch]$SkipRegions,
+    [switch]$Force,
     [switch]$Verbose
 )
 
@@ -122,6 +123,7 @@ function Main {
     if (-not $SkipGenes) {
         $geneScript = Join-Path $ScriptDir "extract_genes.ps1"
         $geneArgs = @("-DataPath", $OutputPath)
+        if ($Force) { $geneArgs += "-Force" }
         
         if (-not (Invoke-ExtractionScript -ScriptPath $geneScript -ScriptName "Gene Data Extraction" -Arguments $geneArgs)) {
             Write-Warning-Log "Gene extraction failed, but continuing with other extractions"
@@ -188,12 +190,14 @@ OPTIONS:
     -SkipGenes           Skip gene data extraction
     -SkipStrs            Skip STR data extraction
     -SkipRegions         Skip region data extraction
+    -Force               Force re-download all data (ignore version tracking)
     -Verbose             Enable verbose logging
     -Help                Show this help message
 
 EXAMPLES:
     .\extract_panels.ps1                           # Full extraction
     .\extract_panels.ps1 -SkipGenes                # Skip gene extraction
+    .\extract_panels.ps1 -Force                    # Force re-download all
     .\extract_panels.ps1 -OutputPath "C:\MyData"   # Custom output path
     .\extract_panels.ps1 -Verbose                  # Verbose logging
 

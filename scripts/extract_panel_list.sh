@@ -169,7 +169,7 @@ download_panels() {
 extract_panel_info() {
     local output_dir="$1"
     local json_dir="$output_dir/panel_list/json"
-    local tsv_file="$output_dir/panel_list.tsv"
+    local tsv_file="$output_dir/panel_list/panel_list.tsv"
     
     log "Extracting panel information from JSON files..."
     

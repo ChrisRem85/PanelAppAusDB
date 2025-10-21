@@ -146,7 +146,7 @@ function Export-PanelInfo {
     param([string]$OutputDir)
     
     $jsonDir = Join-Path $OutputDir "panel_list\json"
-    $tsvFile = Join-Path $OutputDir "panel_list.tsv"
+    $tsvFile = Join-Path $OutputDir "panel_list\panel_list.tsv"
     
     Write-Log "Extracting panel information from JSON files..."
     

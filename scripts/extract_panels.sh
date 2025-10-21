@@ -14,6 +14,7 @@ OUTPUT_PATH="../data"
 SKIP_GENES=0
 SKIP_STRS=0
 SKIP_REGIONS=0
+FORCE=0
 VERBOSE=0
 
 # Colors for output
@@ -62,12 +63,14 @@ OPTIONS:
     --skip-genes         Skip gene data extraction
     --skip-strs          Skip STR data extraction
     --skip-regions       Skip region data extraction
+    --force              Force re-download all data (ignore version tracking)
     --verbose            Enable verbose logging
     --help              Show this help message
 
 EXAMPLES:
     $0                                    # Full extraction
     $0 --skip-genes                       # Skip gene extraction
+    $0 --force                            # Force re-download all
     $0 --output-path /path/to/data        # Custom output path
     $0 --verbose                          # Verbose logging
 
@@ -92,6 +95,10 @@ parse_args() {
                 ;;
             --skip-regions)
                 SKIP_REGIONS=1
+                shift
+                ;;
+            --force)
+                FORCE=1
                 shift
                 ;;
             --verbose)
@@ -175,6 +182,9 @@ main() {
     if [[ $SKIP_GENES -eq 0 ]]; then
         local gene_script="$SCRIPT_DIR/extract_genes.sh"
         local gene_args=("--data-path" "$OUTPUT_PATH")
+        if [[ $FORCE -eq 1 ]]; then
+            gene_args+=("--force")
+        fi
         
         if ! run_script "$gene_script" "Gene Data Extraction" false "${gene_args[@]}"; then
             log_message "Gene extraction failed, but continuing with other extractions" "WARNING"
