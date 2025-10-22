@@ -70,7 +70,8 @@ data/
 
 ## Key Features
 
-- ✅ **Convert JSON to TSV** format with extracted gene fields
+- ✅ **Convert JSON to TSV** format with extracted gene fields including tags
+- ✅ **Extract gene tags** as comma-separated values in the final column
 - ✅ **Detect missing TSV files** and automatically regenerate them
 - ✅ **Validate gene counts** against panel_list.tsv automatically
 - ✅ **Log validation results** with detailed success/failure reporting
@@ -91,13 +92,16 @@ The script automatically validates that the number of genes extracted matches th
 
 ## TSV Output Format
 
-The generated `genes.tsv` files contain extracted gene fields in tab-separated format:
+The generated `genes.tsv` files contain extracted gene fields in tab-separated format with tags as the final column:
 
 ```
-hgnc_symbol    ensembl_id         confidence_level    penetrance    mode_of_pathogenicity    publications               mode_of_inheritance
-COL3A1         ENSG00000168542    3                                                          28742248,19455184,25205403 BIALLELIC, autosomal or pseudoautosomal
-DAG1           ENSG00000173402    1                   unknown                              29337005                   BIALLELIC, autosomal or pseudoautosomal
+hgnc_symbol    ensembl_id         confidence_level    penetrance    mode_of_pathogenicity    publications               mode_of_inheritance                           tags
+COL3A1         ENSG00000168542    3                                                          28742248,19455184,25205403 BIALLELIC, autosomal or pseudoautosomal      structural,connective_tissue
+DAG1           ENSG00000173402    1                   unknown                              29337005                   BIALLELIC, autosomal or pseudoautosomal      dystroglycanopathy,muscular_dystrophy
 ```
+
+### Column Descriptions
+- **tags**: Comma-separated gene tags extracted from the API data. Empty if no tags are available.
 
 ## Processing Logic
 

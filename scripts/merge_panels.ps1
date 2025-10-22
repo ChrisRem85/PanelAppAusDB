@@ -66,7 +66,7 @@ PARAMETERS:
 
 OPTIONS:
     -DataPath <path>    Path to data directory (default: .\data)
-    -Force             Skip confirmation prompts
+    -Force             Force overwrite existing files
     -Verbose           Enable verbose output
     -Help              Show this help message
 
@@ -397,16 +397,6 @@ function Start-PanelMerge {
     foreach ($type in $entityTypes) {
         if ($type -notin $validTypes) {
             Write-Error-Log "Invalid entity type: $type. Valid types are: $($validTypes -join ', ')"
-            return $false
-        }
-    }
-    
-    # Confirmation prompt
-    if (-not $Force) {
-        $message = "This will merge $($entityTypes -join ', ') files from $($panelDirs.Count) panels. Continue? [Y/N]"
-        $response = Read-Host $message
-        if ($response -notmatch '^[Yy]') {
-            Write-Log "Operation cancelled by user"
             return $false
         }
     }

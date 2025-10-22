@@ -56,17 +56,17 @@ Creates consolidated datasets in the root data directory:
 ```
 data/
 ├── genes/                            # Consolidated cross-panel gene data
-│   ├── genes.tsv                     # Merged gene data with panel_id column
+│   ├── genes.tsv                     # Merged gene data with panel_id column and tags
 │   ├── genes.tsv.log                 # Detailed validation and merge information
-│   └── version_merged.txt            # Last merge timestamp (ISO 8601 format)
+│   └── version_merged.txt            # Clean merge timestamp (no trailing newlines)
 ├── strs/                             # Future: Consolidated STR data
 │   ├── strs.tsv                      # (Planned for future implementation)
 │   ├── strs.tsv.log                  # Validation log file
-│   └── version_merged.txt            # Simple timestamp tracking
+│   └── version_merged.txt            # Clean timestamp tracking
 └── regions/                          # Future: Consolidated region data  
     ├── regions.tsv                   # (Planned for future implementation)
     ├── regions.tsv.log               # Validation log file
-    └── version_merged.txt            # Simple timestamp tracking
+    └── version_merged.txt            # Clean timestamp tracking
 ```
 
 ## Key Features
@@ -74,7 +74,8 @@ data/
 - ✅ **Consolidate panel data** - Combine individual panel TSV files with panel_id column
 - ✅ **Cross-panel analysis** - Enable analysis across multiple panels while maintaining traceability
 - ✅ **Incremental merging** - Only re-merge when panel data has been updated
-- ✅ **Version tracking** - Track merge timestamps in `version_merged.txt` files
+- ✅ **Clean file structure** - Separated version tracking (timestamps only) from detailed logs
+- ✅ **No confirmation prompts** - Streamlined execution for automation
 - ✅ **Multi-entity support** - Handle genes, STRs, and regions (STRs/regions planned for future)
 - ✅ **Intelligent updates** - Compare panel `version_processed.txt` against merge timestamps
 - ✅ **Cross-platform** - Both PowerShell and Bash implementations
@@ -88,12 +89,12 @@ After merging, consolidated datasets include panel_id as the first column:
 
 **`data/genes/genes.tsv`:**
 ```
-panel_id    hgnc_symbol    ensembl_id         confidence_level    penetrance    mode_of_pathogenicity
-6           COL3A1         ENSG00000168542    3                                                        
-6           DAG1           ENSG00000173402    1                   unknown                             
-6           FKRP           ENSG00000181027    3                                                        
-7           BRCA1          ENSG00000012048    3                                 LOF_mechanism           
-7           BRCA2          ENSG00000139618    3                                 LOF_mechanism           
+panel_id    hgnc_symbol    ensembl_id         confidence_level    penetrance    mode_of_pathogenicity    tags
+6           COL3A1         ENSG00000168542    3                                                          structural,connective_tissue
+6           DAG1           ENSG00000173402    1                   unknown                               dystroglycanopathy,muscular_dystrophy
+6           FKRP           ENSG00000181027    3                                                          dystroglycanopathy
+7           BRCA1          ENSG00000012048    3                                 LOF_mechanism             breast_cancer,ovarian_cancer
+7           BRCA2          ENSG00000139618    3                                 LOF_mechanism             breast_cancer,ovarian_cancer
 ```
 
 ## Benefits of Merged Data
@@ -172,9 +173,10 @@ Total input rows: 48257
 Output rows: 48257
 Row validation: PASSED
 Column validation: PASSED
-Expected columns: 7
-Output columns: 7
-Timestamp: 2025-10-22T07:07:06.4593636Z
+Expected columns: 8
+Output columns: 8
+Tags column: PRESENT
+Timestamp: 2025-10-22T08:27:00.1234567Z
 ```
 
 ## Implementation Status

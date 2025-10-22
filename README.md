@@ -10,13 +10,13 @@ Use the main wrapper scripts for full automation:
 
 **Windows PowerShell:**
 ```powershell
-# Complete extraction workflow
+# Complete extraction workflow (no prompts)
 .\create_PanelAppAusDB.ps1
 
 # Skip gene extraction (panel list only)
 .\create_PanelAppAusDB.ps1 -SkipGenes
 
-# Force re-download all data
+# Force re-download all data with detailed logging
 .\create_PanelAppAusDB.ps1 -Force -Verbose
 ```
 
@@ -35,8 +35,11 @@ Use the main wrapper scripts for full automation:
 - **📊 Cross-Panel Analysis**: Consolidated datasets with panel_id columns for multi-panel research
 - **🔍 Incremental Processing**: Smart version tracking to avoid unnecessary re-downloads
 - **✅ Built-in Validation**: Comprehensive data integrity checks including row count and column structure validation
-- **🖥️ Cross-Platform**: Both PowerShell (Windows) and Bash (Linux/macOS/WSL) versions
+- **🏷️ Tag Extraction**: Automatic extraction of gene tags as comma-separated values in output
+- **� Clean File Structure**: Separated version tracking (timestamps) from detailed validation logs
+- **�🖥️ Cross-Platform**: Both PowerShell (Windows) and Bash (Linux/macOS/WSL) versions
 - **📈 Comprehensive Logging**: Detailed progress tracking and colored output
+- **🚫 No Prompts**: Streamlined execution without user confirmation prompts
 
 ## 🛠️ What Gets Extracted
 
@@ -172,11 +175,13 @@ This section provides comprehensive information about all individual scripts for
 | Feature | Panel List | Gene Extraction | Gene Processing | Panel Merging |
 |---------|------------|----------------|----------------|---------------|
 | **Input** | PanelApp API | Panel List + API | JSON files | Individual TSV files |
-| **Output** | panel_list.tsv | genes/*.json | genes.tsv | genes/genes.tsv |
-| **Version Tracking** | ❌ | ✅ | ✅ | ✅ |
+| **Output** | panel_list.tsv | genes/*.json | genes.tsv + tags | genes/genes.tsv + logs |
+| **Version Tracking** | ❌ | ✅ | ✅ | ✅ (separated files) |
 | **Incremental Updates** | ❌ | ✅ | ✅ | ✅ |
 | **Cross-platform** | ✅ | ✅ | ✅ | ✅ |
-| **Validation** | ❌ | ❌ | ✅ | ✅ |
+| **Validation** | ❌ | ❌ | ✅ | ✅ (comprehensive) |
+| **Tag Extraction** | ❌ | ❌ | ✅ | ✅ (preserved) |
+| **User Prompts** | ❌ | ❌ | ❌ | ❌ |
 
 #### Platform Support
 
@@ -198,15 +203,15 @@ The complete extraction process follows this sequence:
 ```mermaid
 graph LR
     A[Panel List] --> B[Gene Extraction]
-    B --> C[Gene Processing] 
-    C --> D[Data Merging]
+    B --> C[Gene Processing with Tags] 
+    C --> D[Data Merging with Validation]
     A --> E[panel_list.tsv]
     B --> F[genes/*.json]
-    C --> G[genes.tsv]
-    D --> H[genes/genes.tsv]
+    C --> G[genes.tsv + tags]
+    D --> H[genes/genes.tsv + validation logs]
 ```
 
-**Automated by `create_PanelAppAusDB` scripts** or run individually using the scripts in the `scripts/` directory.
+**Automated by `create_PanelAppAusDB` scripts** with streamlined execution (no prompts) or run individually using the scripts in the `scripts/` directory.
 
 ## 📁 Output Structure
 
@@ -217,11 +222,14 @@ data/
 ├── panel_list/
 │   └── panel_list.tsv                # ← Summary of all panels
 ├── genes/  
-│   └── genes.tsv                     # ← Consolidated cross-panel gene data
+│   ├── genes.tsv                     # ← Consolidated cross-panel gene data with tags
+│   ├── version_merged.txt            # ← Clean timestamp (no validation details)
+│   └── genes.tsv.log                 # ← Detailed validation log
 └── panels/[panel_id]/
     └── genes/
         ├── json/                     # Raw API data
-        └── genes.tsv                 # Individual panel gene data
+        ├── genes.tsv                 # Individual panel gene data with tags
+        └── version_processed.txt     # Processing timestamp
 ```
 
 ### Key Output Files
@@ -229,10 +237,12 @@ data/
 | File | Description |
 |------|-------------|
 | **`panel_list.tsv`** | Complete panel metadata and statistics |
-| **`genes/genes.tsv`** | **Cross-panel consolidated gene dataset** |
-| **`panels/*/genes.tsv`** | Individual panel gene data |
+| **`genes/genes.tsv`** | **Cross-panel consolidated gene dataset with tags** |
+| **`genes/version_merged.txt`** | Clean merge timestamp (no trailing newlines) |
+| **`genes/genes.tsv.log`** | Detailed validation results and metrics |
+| **`panels/*/genes.tsv`** | Individual panel gene data with extracted tags |
 
-> **💡 Pro Tip**: The consolidated `genes/genes.tsv` file includes a `panel_id` column, making it perfect for cross-panel analysis and research.
+> **💡 Pro Tip**: The consolidated `genes/genes.tsv` file includes a `panel_id` column and extracted tags, making it perfect for cross-panel analysis and research. All version files now use clean timestamps without trailing newlines for better automation compatibility.
 
 ## 🔍 Data Overview
 
@@ -240,7 +250,7 @@ data/
 Each panel includes comprehensive metadata: ID, name, version, creation date, and entity counts (genes, STRs, regions).
 
 ### Gene Data Structure  
-Detailed gene information with confidence levels, inheritance patterns, phenotypes, and external database references (HGNC, OMIM, etc.).
+Detailed gene information with confidence levels, inheritance patterns, phenotypes, external database references (HGNC, OMIM, etc.), and extracted tags as comma-separated values.
 
 **📖 [View detailed data specifications →](docs/README.md)**
 
@@ -282,6 +292,7 @@ The merge_panels scripts include comprehensive validation features:
 - **Row Count Validation**: Ensures output contains the exact sum of all input file entries
 - **Column Structure Validation**: Verifies consistent column names and counts across all input files
 - **Integrity Reporting**: Detailed validation results in both logs and version files
+- **File Structure**: Clean separation of version tracking (timestamp-only files) from detailed validation logs
 
 ### Output Format
 All TSV files use tab-separated values with headers, compatible with Excel, R, Python pandas, and other analysis tools.
@@ -308,7 +319,14 @@ This project is open source. Please check the LICENSE file for details.
 
 ## 📋 Changelog
 
-### Version 2.1.0 (Current)
+### Version 2.2.0 (Current)
+- **NEW**: Tag extraction feature - genes now include tags as comma-separated values in final column
+- **NEW**: Clean file structure - separated version files (timestamp only) from detailed validation logs
+- **ENHANCED**: Removed confirmation prompts for streamlined automation
+- **ENHANCED**: Cross-platform consistency - all features implemented in both PowerShell and Bash versions
+- **ENHANCED**: Improved validation logging with structured output files
+
+### Version 2.1.0
 - **NEW**: Comprehensive data validation in `merge_panels` scripts
 - **NEW**: Row count validation ensures output contains sum of all input entries
 - **NEW**: Column structure validation verifies consistent headers across all input files
