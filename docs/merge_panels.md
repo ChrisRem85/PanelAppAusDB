@@ -57,13 +57,16 @@ Creates consolidated datasets in the root data directory:
 data/
 ├── genes/                            # Consolidated cross-panel gene data
 │   ├── genes.tsv                     # Merged gene data with panel_id column
-│   └── version_merged.txt            # Last merge timestamp with validation results
+│   ├── genes.tsv.log                 # Detailed validation and merge information
+│   └── version_merged.txt            # Last merge timestamp (ISO 8601 format)
 ├── strs/                             # Future: Consolidated STR data
 │   ├── strs.tsv                      # (Planned for future implementation)
-│   └── version_merged.txt            # Validation-enhanced version tracking
+│   ├── strs.tsv.log                  # Validation log file
+│   └── version_merged.txt            # Simple timestamp tracking
 └── regions/                          # Future: Consolidated region data  
     ├── regions.tsv                   # (Planned for future implementation)
-    └── version_merged.txt            # Validation-enhanced version tracking
+    ├── regions.tsv.log               # Validation log file
+    └── version_merged.txt            # Simple timestamp tracking
 ```
 
 ## Key Features
@@ -144,15 +147,23 @@ The merger includes intelligent incremental processing:
 - **Force flag**: Bypasses all checks and re-merges
 
 ### Version Tracking
-- **version_merged.txt**: Contains timestamp of last successful merge with validation results
-- **Validation metrics**: Records row counts, column validation status, and panel statistics
+- **version_merged.txt**: Contains only an ISO 8601 timestamp of the last successful merge
+- **[entity_type].tsv.log**: Contains detailed validation information and merge statistics  
 - **Comparison logic**: Checks all panel `version_processed.txt` files against merge timestamp
 - **Cross-validation**: Ensures data consistency across panels
 
-### Version File Contents
-The `version_merged.txt` file now includes comprehensive validation information:
+### Version and Log Files
+
+**Version File (`version_merged.txt`)**
+Contains only the timestamp for simple version tracking:
 ```
-Merged on: 2025-10-22 06:45:44
+2025-10-22T07:07:06.4593636Z
+```
+
+**Log File (`[entity_type].tsv.log`)**
+Contains comprehensive validation and merge information:
+```
+Merged on: 2025-10-22 07:07:06
 Script version: 2.1 (with row and column validation)
 Entity type: genes
 Panels processed: 281
@@ -161,6 +172,9 @@ Total input rows: 48257
 Output rows: 48257
 Row validation: PASSED
 Column validation: PASSED
+Expected columns: 7
+Output columns: 7
+Timestamp: 2025-10-22T07:07:06.4593636Z
 ```
 
 ## Implementation Status

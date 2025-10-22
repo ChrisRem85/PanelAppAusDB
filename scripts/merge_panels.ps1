@@ -230,6 +230,7 @@ function Merge-PanelFiles {
     # Prepare output files
     $outputFile = Join-Path $outputDir "$EntityType.tsv"
     $versionFile = Join-Path $outputDir "version_merged.txt"
+    $logFile = Join-Path $outputDir "$EntityType.tsv.log"
     
     # Initialize merged data
     $mergedData = @()
@@ -311,8 +312,12 @@ function Merge-PanelFiles {
             Write-Error-Log "Found: $outputHeader"
         }
         
-        # Create version info
-        $versionInfo = @"
+        # Create version file with just timestamp
+        $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffffffZ"
+        $timestamp | Out-File -FilePath $versionFile -Encoding UTF8 -NoNewline
+        
+        # Create detailed log file with validation information
+        $logInfo = @"
 Merged on: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 Script version: 2.1 (with row and column validation)
 Entity type: $EntityType
@@ -322,10 +327,11 @@ Total input rows: $totalInputRows
 Output rows: $outputRowCount
 Row validation: $(if ($outputRowCount -eq $totalInputRows) { "PASSED" } else { "FAILED" })
 Column validation: $(if ($columnValidationPassed) { "PASSED" } else { "FAILED" })
-Expected columns: $($expectedHeader -split "`t" | Measure-Object).Count
-Output columns: $($outputHeader -split "`t" | Measure-Object).Count
+Expected columns: $(($expectedHeader -split "`t").Count)
+Output columns: $(($outputHeader -split "`t").Count)
+Timestamp: $timestamp
 "@
-        $versionInfo | Out-File -FilePath $versionFile -Encoding UTF8
+        $logInfo | Out-File -FilePath $logFile -Encoding UTF8
         
         # Perform comprehensive validation check
         $rowValidationPassed = ($outputRowCount -eq $totalInputRows)
@@ -346,6 +352,7 @@ Output columns: $($outputHeader -split "`t" | Measure-Object).Count
         }
         
         Write-Success-Log "Created version file: $versionFile"
+        Write-Success-Log "Created validation log: $logFile"
         return $true
         
     } catch {

@@ -276,6 +276,7 @@ merge_entity_data() {
     local merged_dir="$data_path/$entity_type"
     local merged_file="$merged_dir/$entity_type.tsv"
     local version_file="$merged_dir/version_merged.txt"
+    local log_file="$merged_dir/${entity_type}.tsv.log"
     
     # Create merged directory if it doesn't exist
     if [[ ! -d "$merged_dir" ]]; then
@@ -440,7 +441,12 @@ merge_entity_data() {
         return 1
     fi
     
-    # Create detailed version file
+    # Create version file with timestamp only
+    local timestamp
+    timestamp=$(date -u '+%Y-%m-%dT%H:%M:%S.%6NZ')
+    printf "%s" "$timestamp" > "$version_file"
+    
+    # Create detailed log file with validation information
     local current_date
     current_date=$(date '+%Y-%m-%d %H:%M:%S')
     
@@ -449,7 +455,7 @@ merge_entity_data() {
     local output_columns
     output_columns=$(echo "$output_header" | tr '\t' '\n' | wc -l)
     
-    cat > "$version_file" << EOF
+    cat > "$log_file" << EOF
 Merged on: $current_date
 Script version: 2.1 (with row and column validation)
 Entity type: $entity_type
@@ -461,12 +467,14 @@ Row validation: $(if [[ $row_validation_passed -eq 1 ]]; then echo "PASSED"; els
 Column validation: $(if [[ $column_validation_passed -eq 1 && $output_column_validation_passed -eq 1 ]]; then echo "PASSED"; else echo "FAILED"; fi)
 Expected columns: $expected_columns
 Output columns: $output_columns
+Timestamp: $timestamp
 EOF
     
     if [[ $? -eq 0 ]]; then
         log_message "Created version file: $version_file" "SUCCESS"
+        log_message "Created validation log: $log_file" "SUCCESS"
     else
-        log_message "Error writing version file $version_file" "ERROR"
+        log_message "Error writing log files" "ERROR"
         return 1
     fi
     
