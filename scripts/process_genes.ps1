@@ -169,6 +169,12 @@ function Process-PanelGenes {
                     
                     $mode_of_inheritance = if ($gene.mode_of_inheritance) { $gene.mode_of_inheritance } else { "" }
                     
+                    # Convert tags array to comma-separated string
+                    $tags = ""
+                    if ($gene.tags -and $gene.tags.Count -gt 0) {
+                        $tags = $gene.tags -join ","
+                    }
+                    
                     # Create gene object
                     $geneObj = [PSCustomObject]@{
                         hgnc_symbol = $hgnc_symbol
@@ -178,6 +184,7 @@ function Process-PanelGenes {
                         mode_of_pathogenicity = $mode_of_pathogenicity
                         publications = $publications
                         mode_of_inheritance = $mode_of_inheritance
+                        tags = $tags
                     }
                     
                     $allGenes += $geneObj

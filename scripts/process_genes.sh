@@ -227,7 +227,7 @@ process_panel_genes() {
     local temp_file=$(mktemp)
     
     # Write TSV header
-    echo -e "hgnc_symbol\tensembl_id\tconfidence_level\tpenetrance\tmode_of_pathogenicity\tpublications\tmode_of_inheritance" > "$temp_file"
+    echo -e "hgnc_symbol\tensembl_id\tconfidence_level\tpenetrance\tmode_of_pathogenicity\tpublications\tmode_of_inheritance\ttags" > "$temp_file"
     
     # Process each JSON file
     local gene_count=0
@@ -258,7 +258,14 @@ process_panel_genes() {
                         ""
                     end
                 ),
-                (.mode_of_inheritance // "")
+                (.mode_of_inheritance // ""),
+                (
+                    if .tags and (.tags | length > 0) then
+                        (.tags | join(","))
+                    else
+                        ""
+                    end
+                )
             ] | @tsv
         ' "$json_file" 2>/dev/null >> "$temp_file" || {
             log_message "Error processing file $(basename "$json_file")" "ERROR"
