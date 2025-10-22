@@ -34,7 +34,7 @@ Use the main wrapper scripts for full automation:
 - **🔄 Complete Automation**: Single-command workflow from API to analysis-ready data
 - **📊 Cross-Panel Analysis**: Consolidated datasets with panel_id columns for multi-panel research
 - **🔍 Incremental Processing**: Smart version tracking to avoid unnecessary re-downloads
-- **✅ Built-in Validation**: Automatic data integrity checks and error reporting
+- **✅ Built-in Validation**: Comprehensive data integrity checks including row count and column structure validation
 - **🖥️ Cross-Platform**: Both PowerShell (Windows) and Bash (Linux/macOS/WSL) versions
 - **📈 Comprehensive Logging**: Detailed progress tracking and colored output
 
@@ -136,8 +136,8 @@ For advanced usage or specific requirements, detailed documentation is available
    - Built-in validation and automatic missing file detection
 
 4. **[Panel Data Merging](docs/merge_panels.md)**
-   - Consolidate individual panel data into cross-panel datasets
-   - Enables multi-panel analysis with panel_id traceability
+   - Consolidate individual panel data into cross-panel datasets with comprehensive validation
+   - Enables multi-panel analysis with panel_id traceability and data integrity verification
 
 #### 📚 Complete Documentation Index
 
@@ -163,9 +163,9 @@ This section provides comprehensive information about all individual scripts for
    - Available in PowerShell and Bash versions
 
 4. **[Panel Data Merging](docs/merge_panels.md)**
-   - Consolidate individual panel data into cross-panel datasets
-   - Adds panel_id columns for traceability
-   - Available in PowerShell and Bash versions
+   - Consolidate individual panel data into cross-panel datasets with validation
+   - Adds panel_id columns for traceability with data integrity checks
+   - Available in PowerShell and Bash versions with comprehensive validation
 
 #### Script Comparison Matrix
 
@@ -176,7 +176,7 @@ This section provides comprehensive information about all individual scripts for
 | **Version Tracking** | ❌ | ✅ | ✅ | ✅ |
 | **Incremental Updates** | ❌ | ✅ | ✅ | ✅ |
 | **Cross-platform** | ✅ | ✅ | ✅ | ✅ |
-| **Validation** | ❌ | ❌ | ✅ | ❌ |
+| **Validation** | ❌ | ❌ | ✅ | ✅ |
 
 #### Platform Support
 
@@ -277,6 +277,12 @@ To modify settings, edit the configuration variables at the top of each script f
 ### Error Handling
 All scripts include comprehensive error handling for HTTP requests, JSON parsing, file system operations, and API version compatibility.
 
+### Data Validation
+The merge_panels scripts include comprehensive validation features:
+- **Row Count Validation**: Ensures output contains the exact sum of all input file entries
+- **Column Structure Validation**: Verifies consistent column names and counts across all input files
+- **Integrity Reporting**: Detailed validation results in both logs and version files
+
 ### Output Format
 All TSV files use tab-separated values with headers, compatible with Excel, R, Python pandas, and other analysis tools.
 
@@ -302,7 +308,14 @@ This project is open source. Please check the LICENSE file for details.
 
 ## 📋 Changelog
 
-### Version 2.0.0 (Current)
+### Version 2.1.0 (Current)
+- **NEW**: Comprehensive data validation in `merge_panels` scripts
+- **NEW**: Row count validation ensures output contains sum of all input entries
+- **NEW**: Column structure validation verifies consistent headers across all input files
+- **ENHANCED**: Detailed validation reporting with success/failure indicators
+- **ENHANCED**: Version tracking includes validation results and metrics
+
+### Version 2.0.0
 - **NEW**: Complete workflow automation with `create_PanelAppAusDB` wrapper scripts
 - **NEW**: Panel data merging for cross-panel analysis with `merge_panels` scripts
 - **NEW**: Comprehensive documentation restructure with dedicated `docs/` folder

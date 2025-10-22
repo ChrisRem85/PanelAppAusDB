@@ -57,13 +57,13 @@ Creates consolidated datasets in the root data directory:
 data/
 ├── genes/                            # Consolidated cross-panel gene data
 │   ├── genes.tsv                     # Merged gene data with panel_id column
-│   └── version_merged.txt            # Last merge timestamp
+│   └── version_merged.txt            # Last merge timestamp with validation results
 ├── strs/                             # Future: Consolidated STR data
 │   ├── strs.tsv                      # (Planned for future implementation)
-│   └── version_merged.txt
+│   └── version_merged.txt            # Validation-enhanced version tracking
 └── regions/                          # Future: Consolidated region data  
     ├── regions.tsv                   # (Planned for future implementation)
-    └── version_merged.txt
+    └── version_merged.txt            # Validation-enhanced version tracking
 ```
 
 ## Key Features
@@ -75,6 +75,9 @@ data/
 - ✅ **Multi-entity support** - Handle genes, STRs, and regions (STRs/regions planned for future)
 - ✅ **Intelligent updates** - Compare panel `version_processed.txt` against merge timestamps
 - ✅ **Cross-platform** - Both PowerShell and Bash implementations
+- ✅ **Data validation** - Comprehensive integrity checks for merged data
+- ✅ **Row count validation** - Ensures output contains sum of all input entries
+- ✅ **Column structure validation** - Verifies consistent headers across all input files
 
 ## Merged Output Example
 
@@ -97,6 +100,38 @@ panel_id    hgnc_symbol    ensembl_id         confidence_level    penetrance    
 - **Database integration**: Single file for loading into analysis pipelines
 - **Traceability**: Panel_id maintains source panel information
 
+## Data Validation
+
+The merge process includes comprehensive validation to ensure data integrity:
+
+### Row Count Validation
+- **Purpose**: Verifies that the output file contains exactly the sum of all input file entries
+- **Process**: Counts data rows (excluding headers) from all input TSV files
+- **Validation**: Compares total input rows against output file row count
+- **Reporting**: Success/failure status logged and recorded in version files
+
+### Column Structure Validation
+- **Purpose**: Ensures all input files have consistent column structure
+- **Column Count Check**: Verifies all input TSV files have the same number of columns
+- **Column Name Check**: Confirms all input files have identical column headers
+- **Output Validation**: Verifies the merged output maintains the correct structure
+- **Error Detection**: Catches structural inconsistencies before processing large datasets
+
+### Validation Output
+Successful validation produces detailed reports in both console logs and version files:
+
+```
+✅ Row validation: PASSED (48,257 input rows = 48,257 output rows)
+✅ Column validation: PASSED (All files have matching structure)
+✅ Output structure: PASSED (Correct header format maintained)
+```
+
+### Error Handling
+- **Column mismatches**: Script exits with detailed error messages
+- **Row count discrepancies**: Automatic failure with diagnostic information
+- **Missing files**: Graceful handling with informative warnings
+- **Structural issues**: Early detection prevents corrupt merged files
+
 ## Incremental Processing
 
 The merger includes intelligent incremental processing:
@@ -109,9 +144,24 @@ The merger includes intelligent incremental processing:
 - **Force flag**: Bypasses all checks and re-merges
 
 ### Version Tracking
-- **version_merged.txt**: Contains timestamp of last successful merge
+- **version_merged.txt**: Contains timestamp of last successful merge with validation results
+- **Validation metrics**: Records row counts, column validation status, and panel statistics
 - **Comparison logic**: Checks all panel `version_processed.txt` files against merge timestamp
 - **Cross-validation**: Ensures data consistency across panels
+
+### Version File Contents
+The `version_merged.txt` file now includes comprehensive validation information:
+```
+Merged on: 2025-10-22 06:45:44
+Script version: 2.1 (with row and column validation)
+Entity type: genes
+Panels processed: 281
+Input files processed: 281
+Total input rows: 48257
+Output rows: 48257
+Row validation: PASSED
+Column validation: PASSED
+```
 
 ## Implementation Status
 
@@ -120,6 +170,8 @@ The merger includes intelligent incremental processing:
 - ✅ **Incremental updates**: Version tracking and intelligent merge detection
 - ✅ **Cross-platform**: Both PowerShell and Bash versions
 - ✅ **Error handling**: Comprehensive validation and logging
+- ✅ **Data integrity validation**: Row count and column structure validation
+- ✅ **Validation reporting**: Detailed success/failure indicators in logs and version files
 
 ### Future Implementation
 - ⏳ **STRs merging**: Placeholder logic in place
