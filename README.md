@@ -142,6 +142,10 @@ For advanced usage or specific requirements, detailed documentation is available
    - Consolidate individual panel data into cross-panel datasets with comprehensive validation
    - Enables multi-panel analysis with panel_id traceability and data integrity verification
 
+5. **[Gene to Genelists Conversion](docs/create_GenesToGenelists.md)**
+   - Convert consolidated genes data to specialized genelist format files
+   - Separate files for different confidence levels (Green/Amber) with standardized formatting
+
 #### 📚 Complete Documentation Index
 
 ### Detailed Script Documentation
@@ -170,18 +174,23 @@ This section provides comprehensive information about all individual scripts for
    - Adds panel_id columns for traceability with data integrity checks
    - Available in PowerShell and Bash versions with comprehensive validation
 
+5. **[Gene to Genelists Conversion](docs/create_GenesToGenelists.md)**
+   - Convert consolidated genes data to specialized genelist format files
+   - Separate files for different confidence levels (Green/Amber) with standardized formatting
+   - Available in PowerShell and Bash versions
+
 #### Script Comparison Matrix
 
-| Feature | Panel List | Gene Extraction | Gene Processing | Panel Merging |
-|---------|------------|----------------|----------------|---------------|
-| **Input** | PanelApp API | Panel List + API | JSON files | Individual TSV files |
-| **Output** | panel_list.tsv | genes/*.json | genes.tsv + tags | genes/genes.tsv + logs |
-| **Version Tracking** | ❌ | ✅ | ✅ | ✅ (separated files) |
-| **Incremental Updates** | ❌ | ✅ | ✅ | ✅ |
-| **Cross-platform** | ✅ | ✅ | ✅ | ✅ |
-| **Validation** | ❌ | ❌ | ✅ | ✅ (comprehensive) |
-| **Tag Extraction** | ❌ | ❌ | ✅ | ✅ (preserved) |
-| **User Prompts** | ❌ | ❌ | ❌ | ❌ |
+| Feature | Panel List | Gene Extraction | Gene Processing | Panel Merging | Genelists |
+|---------|------------|----------------|----------------|---------------|-----------|
+| **Input** | PanelApp API | Panel List + API | JSON files | Individual TSV files | Consolidated genes.tsv |
+| **Output** | panel_list.tsv | genes/*.json | genes.tsv + tags | genes/genes.tsv + logs | Confidence-based genelists |
+| **Version Tracking** | ❌ | ✅ | ✅ | ✅ (separated files) | ✅ |
+| **Incremental Updates** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Cross-platform** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Validation** | ❌ | ❌ | ✅ | ✅ (comprehensive) | ✅ |
+| **Tag Extraction** | ❌ | ❌ | ✅ | ✅ (preserved) | ❌ |
+| **User Prompts** | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 #### Platform Support
 
@@ -205,10 +214,12 @@ graph LR
     A[Panel List] --> B[Gene Extraction]
     B --> C[Gene Processing with Tags] 
     C --> D[Data Merging with Validation]
+    D --> I[Genelist Creation]
     A --> E[panel_list.tsv]
     B --> F[genes/*.json]
     C --> G[genes.tsv + tags]
     D --> H[genes/genes.tsv + validation logs]
+    I --> J[Green/Amber genelists]
 ```
 
 **Automated by `create_PanelAppAusDB` scripts** with streamlined execution (no prompts) or run individually using the scripts in the `scripts/` directory.
@@ -225,6 +236,9 @@ data/
 │   ├── genes.tsv                     # ← Consolidated cross-panel gene data with tags
 │   ├── version_merged.txt            # ← Clean timestamp (no validation details)
 │   └── genes.tsv.log                 # ← Detailed validation log
+├── genelists/
+│   ├── genes_to_genelists.PanelAppAustralia_Green.txt  # ← High confidence genes (level 3)
+│   └── genes_to_genelists.PanelAppAustralia_Amber.txt  # ← Moderate confidence genes (level 2)
 └── panels/[panel_id]/
     └── genes/
         ├── json/                     # Raw API data
@@ -240,6 +254,7 @@ data/
 | **`genes/genes.tsv`** | **Cross-panel consolidated gene dataset with tags** |
 | **`genes/version_merged.txt`** | Clean merge timestamp (no trailing newlines) |
 | **`genes/genes.tsv.log`** | Detailed validation results and metrics |
+| **`genelists/*.txt`** | **Confidence-based genelist files for external tools** |
 | **`panels/*/genes.tsv`** | Individual panel gene data with extracted tags |
 
 > **💡 Pro Tip**: The consolidated `genes/genes.tsv` file includes a `panel_id` column and extracted tags, making it perfect for cross-panel analysis and research. All version files now use clean timestamps without trailing newlines for better automation compatibility.
@@ -272,6 +287,7 @@ To modify settings, edit the configuration variables at the top of each script f
 - **[🧬 Gene Extraction Scripts](docs/extract_genes.md)** - Download gene data
 - **[⚡ Gene Processing Scripts](docs/process_genes.md)** - Convert JSON to TSV
 - **[🔀 Panel Merging Scripts](docs/merge_panels.md)** - Create consolidated datasets
+- **[📝 Genelist Converter Scripts](docs/create_GenesToGenelists.md)** - Generate confidence-based genelists
 
 ### External Resources
 - **[PanelApp Australia API](https://panelapp-aus.org/api/docs/)** - Official API documentation
