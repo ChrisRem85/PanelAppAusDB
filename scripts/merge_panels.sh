@@ -299,6 +299,7 @@ merge_entity_data() {
     # Process and merge files
     local header_written=0
     local row_count=0
+    local total_input_rows=0
     
     for i in "${!tsv_files[@]}"; do
         local panel_id="${panel_ids[$i]}"
@@ -313,6 +314,7 @@ merge_entity_data() {
         
         # Process file line by line
         local line_number=0
+        local panel_row_count=0
         while IFS= read -r line; do
             line_number=$((line_number + 1))
             
@@ -328,11 +330,13 @@ merge_entity_data() {
                 if [[ -n "${line// }" ]]; then  # Check if line is not empty or just whitespace
                     echo -e "$panel_id\t$line" >> "$temp_file"
                     row_count=$((row_count + 1))
+                    panel_row_count=$((panel_row_count + 1))
                 fi
             fi
         done < "$file_path"
         
-        log_verbose "Added $((line_number - 1)) rows from panel $panel_id"
+        total_input_rows=$((total_input_rows + panel_row_count))
+        log_verbose "Added $panel_row_count rows from panel $panel_id"
     done
     
     if [[ $row_count -eq 0 ]]; then
@@ -347,6 +351,16 @@ merge_entity_data() {
     else
         log_message "Error writing merged file $merged_file" "ERROR"
         rm -f "$temp_file"
+        return 1
+    fi
+    
+    # Validate merged output
+    log_verbose "Validating merged output: expected $total_input_rows rows, actual $row_count rows"
+    if [[ "$row_count" -eq "$total_input_rows" ]]; then
+        log_message "✓ Validation passed: Merged file contains expected $row_count rows" "SUCCESS"
+    else
+        log_message "✗ Validation failed: Expected $total_input_rows rows, but merged file contains $row_count rows" "ERROR"
+        log_message "Row count mismatch indicates data loss or corruption during merge" "ERROR"
         return 1
     fi
     

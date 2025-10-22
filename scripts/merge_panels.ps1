@@ -1,6 +1,7 @@
-# PanelApp Australia Panel Data Merger (PowerShell)
+# PanelApp Australia Panel Data Merger (PowerShell) with Validation
 # This script merges all panel data into consolidated files with panel_id columns
 # It processes genes.tsv, strs.tsv, and regions.tsv files from individual panels
+# Includes validation to ensure output row count matches sum of input row counts
 
 param(
     [string]$DataPath = ".\data",
@@ -51,295 +52,316 @@ function Write-Verbose-Log {
     }
 }
 
-# Show help information
-function Show-Usage {
+function Show-Help {
     @"
-PanelApp Australia Panel Data Merger
+USAGE: merge_panels.ps1 [OPTIONS] [ENTITY_TYPE]
 
 DESCRIPTION:
-    This script merges panel data files (genes.tsv, strs.tsv, regions.tsv) from individual panels
-    into consolidated files with an additional panel_id column.
+    Merges individual panel TSV files into consolidated files with panel_id columns.
+    Validates that output row counts match the sum of input row counts.
 
-USAGE:
-    .\merge_panels.ps1 [OPTIONS]
+PARAMETERS:
+    EntityType          Type of data to merge (genes, strs, regions, or 'all')
+                       If not specified, defaults to 'all'
 
 OPTIONS:
-    -DataPath PATH      Path to data directory (default: .\data)
-    -EntityType TYPE    Merge only specific entity type: genes, strs, or regions (default: all)
-    -Force              Force re-merge even if up to date
-    -Verbose            Enable verbose logging
-    -Help               Show this help message
+    -DataPath <path>    Path to data directory (default: .\data)
+    -Force             Skip confirmation prompts
+    -Verbose           Enable verbose output
+    -Help              Show this help message
 
 EXAMPLES:
-    .\merge_panels.ps1                           # Merge all entity types
-    .\merge_panels.ps1 -EntityType genes         # Merge only genes
-    .\merge_panels.ps1 -Force                    # Force re-merge all
-    .\merge_panels.ps1 -DataPath "data"          # Custom data path
-    .\merge_panels.ps1 -Verbose                  # Verbose logging
+    merge_panels.ps1 genes
+    merge_panels.ps1 -DataPath "C:\data" -Verbose all
+    merge_panels.ps1 -Force strs
 
 OUTPUT:
-    Creates merged files in:
-    - data/genes/genes.tsv
-    - data/strs/strs.tsv (future)
-    - data/regions/regions.tsv (future)
-    
-    With version tracking files:
-    - data/genes/version_merged.txt
-    - data/strs/version_merged.txt
-    - data/regions/version_merged.txt
+    Creates merged files in data/[entity_type]/ directories:
+    - [entity_type].tsv (merged data)
+    - version_merged.txt (processing info)
 
+VALIDATION:
+    The script validates that the total number of rows in the output file
+    equals the sum of rows from all input files, ensuring data integrity.
 "@
 }
 
-# Check if merge is needed for an entity type
-function Test-MergeNeeded {
-    param(
-        [string]$DataPath,
-        [string]$EntityType
-    )
+# Helper function to validate file paths
+function Test-DataPath {
+    param([string]$Path)
     
-    Write-Verbose-Log "Checking if $EntityType merge is needed..."
-    
-    $mergedDir = Join-Path $DataPath $EntityType
-    $mergedFile = Join-Path $mergedDir "$EntityType.tsv"
-    $versionFile = Join-Path $mergedDir "version_merged.txt"
-    
-    # If Force is specified, always merge
-    if ($Force) {
-        Write-Verbose-Log "$EntityType merge needed: Force specified"
-        return $true
-    }
-    
-    # If merged directory doesn't exist
-    if (-not (Test-Path $mergedDir)) {
-        Write-Verbose-Log "$EntityType merge needed: Merged directory does not exist"
-        return $true
-    }
-    
-    # If merged file doesn't exist
-    if (-not (Test-Path $mergedFile)) {
-        Write-Verbose-Log "$EntityType merge needed: Merged file does not exist"
-        return $true
-    }
-    
-    # If version file doesn't exist
-    if (-not (Test-Path $versionFile)) {
-        Write-Verbose-Log "$EntityType merge needed: Version file does not exist"
-        return $true
-    }
-    
-    # Get the last merged date
-    try {
-        $lastMergedDate = Get-Content $versionFile -ErrorAction Stop | Select-Object -First 1
-        $lastMergedDateTime = [DateTime]::Parse($lastMergedDate)
-        Write-Verbose-Log "$EntityType last merged: $lastMergedDate"
-    } catch {
-        Write-Verbose-Log "$EntityType merge needed: Cannot read version file"
-        return $true
-    }
-    
-    # Check all panel version_processed files
-    $panelsDir = Join-Path $DataPath "panels"
-    if (-not (Test-Path $panelsDir)) {
-        Write-Warning-Log "Panels directory not found: $panelsDir"
+    if (-not (Test-Path $Path)) {
+        Write-Error-Log "Data path does not exist: $Path"
         return $false
     }
     
-    $panelDirs = Get-ChildItem $panelsDir -Directory | Where-Object { $_.Name -match '^\d+$' }
-    
-    foreach ($panelDir in $panelDirs) {
-        $panelId = $panelDir.Name
-        $processedFile = Join-Path (Join-Path $panelDir.FullName $EntityType) "version_processed.txt"
-        
-        if (Test-Path $processedFile) {
-            try {
-                $processedDate = Get-Content $processedFile -ErrorAction Stop | Select-Object -First 1
-                $processedDateTime = [DateTime]::Parse($processedDate)
-                
-                if ($processedDateTime -gt $lastMergedDateTime) {
-                    Write-Verbose-Log "$EntityType merge needed: Panel $panelId processed date ($processedDate) is newer than merged date ($lastMergedDate)"
-                    return $true
-                }
-            } catch {
-                Write-Verbose-Log "$EntityType merge needed: Cannot read processed date for panel $panelId"
-                return $true
-            }
-        }
-    }
-    
-    Write-Verbose-Log "$EntityType is up to date"
-    return $false
-}
-
-# Merge entity type data
-function Merge-EntityData {
-    param(
-        [string]$DataPath,
-        [string]$EntityType
-    )
-    
-    Write-Log "Merging $EntityType data..."
-    
-    $panelsDir = Join-Path $DataPath "panels"
-    $mergedDir = Join-Path $DataPath $EntityType
-    $mergedFile = Join-Path $mergedDir "$EntityType.tsv"
-    $versionFile = Join-Path $mergedDir "version_merged.txt"
-    
-    # Create merged directory if it doesn't exist
-    if (-not (Test-Path $mergedDir)) {
-        New-Item -Path $mergedDir -ItemType Directory -Force | Out-Null
-        Write-Verbose-Log "Created directory: $mergedDir"
-    }
-    
-    # Find all panel directories
-    $panelDirs = Get-ChildItem $panelsDir -Directory | Where-Object { $_.Name -match '^\d+$' }
-    
-    if ($panelDirs.Count -eq 0) {
-        Write-Warning-Log "No panel directories found in $panelsDir"
-        return $false
-    }
-    
-    Write-Verbose-Log "Found $($panelDirs.Count) panel directories"
-    
-    # Collect all TSV files
-    $tsvFiles = @()
-    foreach ($panelDir in $panelDirs) {
-        $panelId = $panelDir.Name
-        $tsvPath = Join-Path (Join-Path $panelDir.FullName $EntityType) "$EntityType.tsv"
-        
-        if (Test-Path $tsvPath) {
-            $tsvFiles += @{
-                PanelId = $panelId
-                Path = $tsvPath
-            }
-            Write-Verbose-Log "Found $EntityType file for panel $panelId"
-        } else {
-            Write-Verbose-Log "No $EntityType file found for panel $panelId"
-        }
-    }
-    
-    if ($tsvFiles.Count -eq 0) {
-        Write-Warning-Log "No $EntityType.tsv files found in any panel directory"
-        return $false
-    }
-    
-    Write-Log "Found $($tsvFiles.Count) $EntityType files to merge"
-    
-    # Process and merge files
-    $allRows = @()
-    $headerWritten = $false
-    $header = $null
-    
-    foreach ($tsvFile in $tsvFiles) {
-        $panelId = $tsvFile.PanelId
-        $filePath = $tsvFile.Path
-        
-        Write-Verbose-Log "Processing panel $panelId file: $filePath"
-        
-        try {
-            $content = Get-Content $filePath -Encoding UTF8
-            
-            if ($content.Count -eq 0) {
-                Write-Warning-Log "Empty file: $filePath"
-                continue
-            }
-            
-            # Get header from first file
-            if (-not $headerWritten) {
-                $header = "panel_id`t" + $content[0]
-                $headerWritten = $true
-                Write-Verbose-Log "Header: $header"
-            }
-            
-            # Process data rows (skip header)
-            for ($i = 1; $i -lt $content.Count; $i++) {
-                if ($content[$i].Trim() -ne "") {
-                    $row = "$panelId`t" + $content[$i]
-                    $allRows += $row
-                }
-            }
-            
-            Write-Verbose-Log "Added $($content.Count - 1) rows from panel $panelId"
-        } catch {
-            Write-Error-Log "Error processing file $filePath`: $($_.Exception.Message)"
-            continue
-        }
-    }
-    
-    if ($allRows.Count -eq 0) {
-        Write-Warning-Log "No data rows found to merge"
-        return $false
-    }
-    
-    # Write merged file
-    try {
-        $outputContent = @($header) + $allRows
-        $outputContent | Out-File -FilePath $mergedFile -Encoding UTF8
-        Write-Success-Log "Created merged file: $mergedFile with $($allRows.Count) data rows"
-    } catch {
-        Write-Error-Log "Error writing merged file $mergedFile`: $($_.Exception.Message)"
-        return $false
-    }
-    
-    # Create version file
-    try {
-        $currentDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $currentDate | Out-File -FilePath $versionFile -Encoding UTF8
-        Write-Success-Log "Created version file: $versionFile"
-    } catch {
-        Write-Error-Log "Error writing version file $versionFile`: $($_.Exception.Message)"
+    $panelsPath = Join-Path $Path "panels"
+    if (-not (Test-Path $panelsPath)) {
+        Write-Error-Log "Panels directory not found: $panelsPath"
         return $false
     }
     
     return $true
 }
 
-# Main execution function
-function Main {
-    if ($Help) {
-        Show-Usage
-        exit 0
+# Function to get panel directories
+function Get-PanelDirectories {
+    param([string]$DataPath)
+    
+    $panelsPath = Join-Path $DataPath "panels"
+    $panelDirs = Get-ChildItem -Path $panelsPath -Directory -ErrorAction SilentlyContinue |
+                 Where-Object { $_.Name -match '^\d+$' } |
+                 Sort-Object { [int]$_.Name }
+    
+    if (-not $panelDirs) {
+        Write-Error-Log "No panel directories found in $panelsPath"
+        return @()
     }
     
-    Write-Log "Starting PanelApp Australia panel data merger..."
+    Write-Verbose-Log "Found $($panelDirs.Count) panel directories"
+    return $panelDirs
+}
+
+# Function to count TSV data rows (excluding header)
+function Get-TSVRowCount {
+    param([string]$FilePath)
     
-    # Validate data path
-    if (-not (Test-Path $DataPath)) {
-        Write-Error-Log "Data path not found: $DataPath"
-        exit 1
+    try {
+        $lines = Get-Content $FilePath -ErrorAction Stop
+        # Subtract 1 for header row, return 0 if file is empty or has only header
+        return [Math]::Max(0, $lines.Count - 1)
+    } catch {
+        Write-Verbose-Log "Could not read file $FilePath : $($_.Exception.Message)"
+        return 0
     }
+}
+
+# Function to merge panel files for a specific entity type
+function Merge-PanelFiles {
+    param(
+        [string]$DataPath,
+        [string]$EntityType,
+        [array]$PanelDirectories
+    )
     
-    $DataPath = Resolve-Path $DataPath
-    Write-Log "Using data path: $DataPath"
+    Write-Log "Starting merge for $EntityType files..."
     
-    # Define entity types to process
-    $entityTypes = if ($EntityType) { @($EntityType) } else { @("genes", "strs", "regions") }
+    # Track input row counts for validation
+    $totalInputRows = 0
+    $processedPanels = 0
     
-    $success = $true
-    
-    foreach ($entityType in $entityTypes) {
-        # For now, only process genes (strs and regions are future implementation)
-        if ($entityType -ne "genes") {
-            Write-Log "Skipping $entityType (future implementation)"
-            continue
-        }
+    # Find files to merge
+    $filesToMerge = @()
+    foreach ($panelDir in $PanelDirectories) {
+        $entityDir = Join-Path $panelDir.FullName $EntityType
+        $entityFile = Join-Path $entityDir "$EntityType.tsv"
         
-        if (Test-MergeNeeded -DataPath $DataPath -EntityType $entityType) {
-            if (-not (Merge-EntityData -DataPath $DataPath -EntityType $entityType)) {
-                Write-Warning-Log "$entityType merge failed"
-                $success = $false
+        if (Test-Path $entityFile) {
+            Write-Verbose-Log "Found $EntityType file for panel $($panelDir.Name)"
+            $filesToMerge += @{
+                PanelId = $panelDir.Name
+                FilePath = $entityFile
             }
         } else {
-            Write-Log "$entityType data is up to date"
+            Write-Verbose-Log "No $EntityType file found for panel $($panelDir.Name)"
+        }
+    }
+    
+    if ($filesToMerge.Count -eq 0) {
+        Write-Warning-Log "No $EntityType files found to merge"
+        return $false
+    }
+    
+    Write-Log "Found $($filesToMerge.Count) $EntityType files to merge"
+    
+    # Create output directory
+    $outputDir = Join-Path $DataPath $EntityType
+    if (-not (Test-Path $outputDir)) {
+        New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+        Write-Verbose-Log "Created output directory: $outputDir"
+    }
+    
+    # Prepare output files
+    $outputFile = Join-Path $outputDir "$EntityType.tsv"
+    $versionFile = Join-Path $outputDir "version_merged.txt"
+    
+    # Initialize merged data
+    $mergedData = @()
+    $header = $null
+    
+    # Process each file
+    foreach ($fileInfo in $filesToMerge) {
+        $panelId = $fileInfo.PanelId
+        $filePath = $fileInfo.FilePath
+        
+        Write-Verbose-Log "Processing panel $panelId file: $filePath"
+        
+        try {
+            $content = Get-Content $filePath -ErrorAction Stop
+            
+            if ($content.Count -eq 0) {
+                Write-Verbose-Log "Skipping empty file: $filePath"
+                continue
+            }
+            
+            # Process header
+            $currentHeader = $content[0]
+            if (-not $header) {
+                $header = "panel_id`t$currentHeader"
+                Write-Verbose-Log "Header: $header"
+            }
+            
+            # Process data rows
+            $dataRows = $content[1..($content.Count-1)]
+            $rowCount = $dataRows.Count
+            
+            # Count input rows for validation
+            $totalInputRows += $rowCount
+            
+            foreach ($row in $dataRows) {
+                if ($row.Trim()) {  # Skip empty rows
+                    $mergedData += "$panelId`t$row"
+                }
+            }
+            
+            Write-Verbose-Log "Added $rowCount rows from panel $panelId"
+            $processedPanels++
+            
+        } catch {
+            Write-Error-Log "Error processing $filePath : $($_.Exception.Message)"
+            continue
+        }
+    }
+    
+    # Write merged data to output file
+    try {
+        $allContent = @($header) + $mergedData
+        $allContent | Out-File -FilePath $outputFile -Encoding UTF8
+        
+        # Validation: Count rows in output file
+        $outputRowCount = Get-TSVRowCount $outputFile
+        
+        # Create version info
+        $versionInfo = @"
+Merged on: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+Script version: 2.0 (with validation)
+Entity type: $EntityType
+Panels processed: $processedPanels
+Input files processed: $($filesToMerge.Count)
+Total input rows: $totalInputRows
+Output rows: $outputRowCount
+Validation: $(if ($outputRowCount -eq $totalInputRows) { "PASSED" } else { "FAILED" })
+"@
+        $versionInfo | Out-File -FilePath $versionFile -Encoding UTF8
+        
+        # Perform validation check
+        if ($outputRowCount -eq $totalInputRows) {
+            Write-Success-Log "Validation PASSED: Output file contains $outputRowCount rows (matches input total)"
+            Write-Success-Log "Created merged file: $outputFile with $outputRowCount data rows"
+        } else {
+            Write-Error-Log "Validation FAILED: Expected $totalInputRows rows, but output file has $outputRowCount rows"
+            Write-Error-Log "Data integrity issue detected in merged file: $outputFile"
+            return $false
+        }
+        
+        Write-Success-Log "Created version file: $versionFile"
+        return $true
+        
+    } catch {
+        Write-Error-Log "Error writing output files: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# Main execution function
+function Start-PanelMerge {
+    param(
+        [string]$DataPath,
+        [string]$EntityType,
+        [switch]$Force
+    )
+    
+    Write-Log "Panel data merger starting..."
+    Write-Verbose-Log "Data path: $DataPath"
+    Write-Verbose-Log "Entity type: $EntityType"
+    
+    # Validate data path
+    if (-not (Test-DataPath $DataPath)) {
+        return $false
+    }
+    
+    # Get panel directories
+    $panelDirs = Get-PanelDirectories $DataPath
+    if ($panelDirs.Count -eq 0) {
+        return $false
+    }
+    
+    # Determine entity types to process
+    $entityTypes = @()
+    if ($EntityType -eq "all" -or $EntityType -eq "") {
+        $entityTypes = @("genes", "strs", "regions")
+    } else {
+        $entityTypes = @($EntityType)
+    }
+    
+    # Validate entity types
+    $validTypes = @("genes", "strs", "regions")
+    foreach ($type in $entityTypes) {
+        if ($type -notin $validTypes) {
+            Write-Error-Log "Invalid entity type: $type. Valid types are: $($validTypes -join ', ')"
+            return $false
+        }
+    }
+    
+    # Confirmation prompt
+    if (-not $Force) {
+        $message = "This will merge $($entityTypes -join ', ') files from $($panelDirs.Count) panels. Continue? [Y/N]"
+        $response = Read-Host $message
+        if ($response -notmatch '^[Yy]') {
+            Write-Log "Operation cancelled by user"
+            return $false
+        }
+    }
+    
+    # Process each entity type
+    $success = $true
+    foreach ($type in $entityTypes) {
+        Write-Log "Processing $type files..."
+        if (-not (Merge-PanelFiles -DataPath $DataPath -EntityType $type -PanelDirectories $panelDirs)) {
+            $success = $false
+            Write-Error-Log "Failed to merge $type files"
         }
     }
     
     if ($success) {
-        Write-Success-Log "Panel data merger completed successfully!"
+        Write-Success-Log "Panel data merger completed successfully with validation!"
     } else {
-        Write-Warning-Log "Panel data merger completed with some warnings/errors"
+        Write-Error-Log "Panel data merger completed with errors"
     }
+    
+    return $success
 }
 
-# Run main function
-Main
+# Main script execution
+if ($Help) {
+    Show-Help
+    exit 0
+}
+
+# Set default entity type
+if (-not $EntityType) {
+    $EntityType = "all"
+}
+
+# Convert relative path to absolute
+$DataPath = Resolve-Path $DataPath -ErrorAction SilentlyContinue
+if (-not $DataPath) {
+    Write-Error-Log "Invalid data path specified"
+    exit 1
+}
+
+# Run the merger
+$result = Start-PanelMerge -DataPath $DataPath -EntityType $EntityType -Force:$Force
+
+# Exit with appropriate code
+exit $(if ($result) { 0 } else { 1 })
