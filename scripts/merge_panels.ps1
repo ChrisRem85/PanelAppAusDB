@@ -136,6 +136,52 @@ function Get-TSVRowCount {
     }
 }
 
+# Function to validate TSV column structure
+function Test-TSVColumnStructure {
+    param(
+        [string]$FilePath,
+        [string]$ExpectedHeader,
+        [string]$PanelId
+    )
+    
+    try {
+        $content = Get-Content $FilePath -ErrorAction Stop
+        if ($content.Count -eq 0) {
+            Write-Warning-Log "Empty file cannot be validated: $FilePath"
+            return $false
+        }
+        
+        $currentHeader = $content[0]
+        $expectedColumns = $ExpectedHeader -split "`t"
+        $actualColumns = $currentHeader -split "`t"
+        
+        # Check column count
+        if ($expectedColumns.Count -ne $actualColumns.Count) {
+            Write-Error-Log "Column count mismatch in panel $PanelId. Expected: $($expectedColumns.Count), Found: $($actualColumns.Count)"
+            Write-Error-Log "Expected: $ExpectedHeader"
+            Write-Error-Log "Found: $currentHeader"
+            return $false
+        }
+        
+        # Check column names
+        for ($i = 0; $i -lt $expectedColumns.Count; $i++) {
+            if ($expectedColumns[$i] -ne $actualColumns[$i]) {
+                Write-Error-Log "Column name mismatch in panel $PanelId at position $($i+1). Expected: '$($expectedColumns[$i])', Found: '$($actualColumns[$i])'"
+                Write-Error-Log "Expected: $ExpectedHeader"
+                Write-Error-Log "Found: $currentHeader"
+                return $false
+            }
+        }
+        
+        Write-Verbose-Log "Column structure validated for panel $PanelId"
+        return $true
+        
+    } catch {
+        Write-Error-Log "Error validating column structure for $FilePath : $($_.Exception.Message)"
+        return $false
+    }
+}
+
 # Function to merge panel files for a specific entity type
 function Merge-PanelFiles {
     param(
@@ -188,6 +234,7 @@ function Merge-PanelFiles {
     # Initialize merged data
     $mergedData = @()
     $header = $null
+    $expectedHeader = $null
     
     # Process each file
     foreach ($fileInfo in $filesToMerge) {
@@ -204,11 +251,20 @@ function Merge-PanelFiles {
                 continue
             }
             
-            # Process header
+            # Process header and validate column structure
             $currentHeader = $content[0]
             if (-not $header) {
+                # First file establishes the expected column structure
+                $expectedHeader = $currentHeader
                 $header = "panel_id`t$currentHeader"
                 Write-Verbose-Log "Header: $header"
+                Write-Verbose-Log "Established column structure from panel $panelId"
+            } else {
+                # Validate that subsequent files have the same column structure
+                if (-not (Test-TSVColumnStructure -FilePath $filePath -ExpectedHeader $expectedHeader -PanelId $panelId)) {
+                    Write-Error-Log "Column structure validation failed for panel $panelId. Skipping file."
+                    continue
+                }
             }
             
             # Process data rows
@@ -241,26 +297,51 @@ function Merge-PanelFiles {
         # Validation: Count rows in output file
         $outputRowCount = Get-TSVRowCount $outputFile
         
+        # Validate output file column structure
+        $outputContent = Get-Content $outputFile -ErrorAction Stop
+        $outputHeader = $outputContent[0]
+        $expectedOutputHeader = "panel_id`t$expectedHeader"
+        $columnValidationPassed = ($outputHeader -eq $expectedOutputHeader)
+        
+        if ($columnValidationPassed) {
+            Write-Success-Log "Column structure validation PASSED: Output header matches expected format"
+        } else {
+            Write-Error-Log "Column structure validation FAILED: Output header mismatch"
+            Write-Error-Log "Expected: $expectedOutputHeader"
+            Write-Error-Log "Found: $outputHeader"
+        }
+        
         # Create version info
         $versionInfo = @"
 Merged on: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-Script version: 2.0 (with validation)
+Script version: 2.1 (with row and column validation)
 Entity type: $EntityType
 Panels processed: $processedPanels
 Input files processed: $($filesToMerge.Count)
 Total input rows: $totalInputRows
 Output rows: $outputRowCount
-Validation: $(if ($outputRowCount -eq $totalInputRows) { "PASSED" } else { "FAILED" })
+Row validation: $(if ($outputRowCount -eq $totalInputRows) { "PASSED" } else { "FAILED" })
+Column validation: $(if ($columnValidationPassed) { "PASSED" } else { "FAILED" })
+Expected columns: $($expectedHeader -split "`t" | Measure-Object).Count
+Output columns: $($outputHeader -split "`t" | Measure-Object).Count
 "@
         $versionInfo | Out-File -FilePath $versionFile -Encoding UTF8
         
-        # Perform validation check
-        if ($outputRowCount -eq $totalInputRows) {
-            Write-Success-Log "Validation PASSED: Output file contains $outputRowCount rows (matches input total)"
+        # Perform comprehensive validation check
+        $rowValidationPassed = ($outputRowCount -eq $totalInputRows)
+        $allValidationPassed = $rowValidationPassed -and $columnValidationPassed
+        
+        if ($allValidationPassed) {
+            Write-Success-Log "All validations PASSED: Output file structure and row count are correct"
             Write-Success-Log "Created merged file: $outputFile with $outputRowCount data rows"
         } else {
-            Write-Error-Log "Validation FAILED: Expected $totalInputRows rows, but output file has $outputRowCount rows"
-            Write-Error-Log "Data integrity issue detected in merged file: $outputFile"
+            if (-not $rowValidationPassed) {
+                Write-Error-Log "Row validation FAILED: Expected $totalInputRows rows, but output file has $outputRowCount rows"
+            }
+            if (-not $columnValidationPassed) {
+                Write-Error-Log "Column validation FAILED: Output header structure does not match expected format"
+            }
+            Write-Error-Log "Data integrity issues detected in merged file: $outputFile"
             return $false
         }
         

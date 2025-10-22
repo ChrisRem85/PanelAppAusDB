@@ -47,6 +47,46 @@ log_verbose() {
     fi
 }
 
+# Validate TSV column structure
+validate_tsv_columns() {
+    local file_path="$1"
+    local expected_header="$2"
+    local panel_id="$3"
+    
+    if [[ ! -s "$file_path" ]]; then
+        log_message "Empty file cannot be validated: $file_path" "WARNING"
+        return 1
+    fi
+    
+    local current_header
+    current_header=$(head -n1 "$file_path")
+    
+    # Convert headers to arrays for comparison
+    IFS=$'\t' read -ra expected_cols <<< "$expected_header"
+    IFS=$'\t' read -ra actual_cols <<< "$current_header"
+    
+    # Check column count
+    if [[ ${#expected_cols[@]} -ne ${#actual_cols[@]} ]]; then
+        log_message "Column count mismatch in panel $panel_id. Expected: ${#expected_cols[@]}, Found: ${#actual_cols[@]}" "ERROR"
+        log_message "Expected: $expected_header" "ERROR"
+        log_message "Found: $current_header" "ERROR"
+        return 1
+    fi
+    
+    # Check column names
+    for i in "${!expected_cols[@]}"; do
+        if [[ "${expected_cols[$i]}" != "${actual_cols[$i]}" ]]; then
+            log_message "Column name mismatch in panel $panel_id at position $((i+1)). Expected: '${expected_cols[$i]}', Found: '${actual_cols[$i]}'" "ERROR"
+            log_message "Expected: $expected_header" "ERROR"
+            log_message "Found: $current_header" "ERROR"
+            return 1
+        fi
+    done
+    
+    log_verbose "Column structure validated for panel $panel_id"
+    return 0
+}
+
 # Show usage information
 show_usage() {
     cat << EOF
@@ -300,6 +340,8 @@ merge_entity_data() {
     local header_written=0
     local row_count=0
     local total_input_rows=0
+    local expected_header=""
+    local column_validation_passed=1
     
     for i in "${!tsv_files[@]}"; do
         local panel_id="${panel_ids[$i]}"
@@ -321,9 +363,19 @@ merge_entity_data() {
             # Handle header
             if [[ $line_number -eq 1 ]]; then
                 if [[ $header_written -eq 0 ]]; then
+                    # First file establishes the expected column structure
+                    expected_header="$line"
                     echo -e "panel_id\t$line" >> "$temp_file"
                     header_written=1
                     log_verbose "Header: panel_id	$line"
+                    log_verbose "Established column structure from panel $panel_id"
+                else
+                    # Validate that subsequent files have the same column structure
+                    if ! validate_tsv_columns "$file_path" "$expected_header" "$panel_id"; then
+                        log_message "Column structure validation failed for panel $panel_id. Skipping file." "ERROR"
+                        column_validation_passed=0
+                        continue 2  # Skip to next file
+                    fi
                 fi
             else
                 # Handle data rows
@@ -354,21 +406,64 @@ merge_entity_data() {
         return 1
     fi
     
-    # Validate merged output
-    log_verbose "Validating merged output: expected $total_input_rows rows, actual $row_count rows"
-    if [[ "$row_count" -eq "$total_input_rows" ]]; then
-        log_message "✓ Validation passed: Merged file contains expected $row_count rows" "SUCCESS"
+    # Validate merged output structure
+    local output_header
+    output_header=$(head -n1 "$merged_file")
+    local expected_output_header="panel_id	$expected_header"
+    local output_column_validation_passed=1
+    
+    if [[ "$output_header" == "$expected_output_header" ]]; then
+        log_message "✓ Column structure validation PASSED: Output header matches expected format" "SUCCESS"
     else
-        log_message "✗ Validation failed: Expected $total_input_rows rows, but merged file contains $row_count rows" "ERROR"
+        log_message "✗ Column structure validation FAILED: Output header mismatch" "ERROR"
+        log_message "Expected: $expected_output_header" "ERROR"
+        log_message "Found: $output_header" "ERROR"
+        output_column_validation_passed=0
+    fi
+    
+    # Validate merged output row count
+    log_verbose "Validating merged output: expected $total_input_rows rows, actual $row_count rows"
+    local row_validation_passed=1
+    if [[ "$row_count" -eq "$total_input_rows" ]]; then
+        log_message "✓ Row count validation PASSED: Merged file contains expected $row_count rows" "SUCCESS"
+    else
+        log_message "✗ Row count validation FAILED: Expected $total_input_rows rows, but merged file contains $row_count rows" "ERROR"
         log_message "Row count mismatch indicates data loss or corruption during merge" "ERROR"
+        row_validation_passed=0
+    fi
+    
+    # Overall validation check
+    if [[ $column_validation_passed -eq 1 && $output_column_validation_passed -eq 1 && $row_validation_passed -eq 1 ]]; then
+        log_message "✓ All validations PASSED: Output file structure and row count are correct" "SUCCESS"
+    else
+        log_message "✗ Validation FAILED: Data integrity issues detected in merged file" "ERROR"
         return 1
     fi
     
-    # Create version file
+    # Create detailed version file
     local current_date
     current_date=$(date '+%Y-%m-%d %H:%M:%S')
     
-    if echo "$current_date" > "$version_file"; then
+    local expected_columns
+    expected_columns=$(echo "$expected_header" | tr '\t' '\n' | wc -l)
+    local output_columns
+    output_columns=$(echo "$output_header" | tr '\t' '\n' | wc -l)
+    
+    cat > "$version_file" << EOF
+Merged on: $current_date
+Script version: 2.1 (with row and column validation)
+Entity type: $entity_type
+Panels processed: ${#tsv_files[@]}
+Input files processed: ${#tsv_files[@]}
+Total input rows: $total_input_rows
+Output rows: $row_count
+Row validation: $(if [[ $row_validation_passed -eq 1 ]]; then echo "PASSED"; else echo "FAILED"; fi)
+Column validation: $(if [[ $column_validation_passed -eq 1 && $output_column_validation_passed -eq 1 ]]; then echo "PASSED"; else echo "FAILED"; fi)
+Expected columns: $expected_columns
+Output columns: $output_columns
+EOF
+    
+    if [[ $? -eq 0 ]]; then
         log_message "Created version file: $version_file" "SUCCESS"
     else
         log_message "Error writing version file $version_file" "ERROR"
