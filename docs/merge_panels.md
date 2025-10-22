@@ -122,20 +122,28 @@ The merger includes intelligent incremental processing:
 
 The merge_panels scripts integrate seamlessly with the existing extraction pipeline:
 
-1. **extract_panels** → Orchestrates panel list and gene extraction
+1. **create_PanelAppAusDB** → Orchestrates panel list and gene extraction
 2. **extract_genes** → Downloads raw JSON data for panels
 3. **process_genes** → Converts JSON to TSV format
 4. **merge_panels** → Consolidates panel TSVs with panel_id column
 
 ### Recommended Workflow
 ```powershell
-# Complete data extraction and processing
-.\scripts\extract_panels.ps1
-
-# Merge all processed data
-.\scripts\merge_panels.ps1
+# Complete data extraction, processing, and merging in one command
+.\create_PanelAppAusDB.ps1
 
 # Result: Consolidated cross-panel datasets ready for analysis
+```
+
+### Manual Workflow (if needed)
+```powershell
+# Step-by-step approach (if you need more control)
+.\create_PanelAppAusDB.ps1 -SkipGenes  # Panel list only
+.\scripts\extract_genes.ps1            # Gene extraction
+.\scripts\process_genes.ps1            # Gene processing
+.\scripts\merge_panels.ps1             # Data merging
+
+# Result: Same consolidated datasets
 ```
 
 ## Example Output

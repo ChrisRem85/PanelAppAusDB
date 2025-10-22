@@ -3,11 +3,12 @@
 # 1. Extracts panel list data
 # 2. Extracts detailed gene data for each panel
 # 3. Processes gene data (converts JSON to TSV format)
-# 4. Will extract STR data (placeholder for future implementation)
-# 5. Will extract region data (placeholder for future implementation)
+# 4. Merges panel data (consolidates TSVs with panel_id column)
+# 5. Will extract STR data (placeholder for future implementation)
+# 6. Will extract region data (placeholder for future implementation)
 
 param(
-    [string]$OutputPath = "..\data",
+    [string]$OutputPath = ".\data",
     [string]$PanelId = "",
     [switch]$SkipGenes,
     [switch]$SkipStrs,
@@ -125,7 +126,7 @@ function Main {
     $success = $true
     
     # Step 1: Extract panel list data
-    $panelListScript = Join-Path $ScriptDir "extract_panel_list.ps1"
+    $panelListScript = Join-Path $ScriptDir "scripts\extract_panel_list.ps1"
     $panelListArgs = @("-OutputPath", $OutputPath)
     
     if (-not (Invoke-ExtractionScript -ScriptPath $panelListScript -ScriptName "Panel List Extraction" -Arguments $panelListArgs)) {
@@ -145,7 +146,7 @@ function Main {
     
     # Step 2: Extract gene data (if not skipped)
     if (-not $SkipGenes) {
-        $geneScript = Join-Path $ScriptDir "extract_genes.ps1"
+        $geneScript = Join-Path $ScriptDir "scripts\extract_genes.ps1"
         $geneArgs = @("-DataPath", $OutputPath)
         if ($Force) { $geneArgs += "-Force" }
         if ($PanelId) { $geneArgs += @("-PanelId", $PanelId) }
@@ -155,7 +156,7 @@ function Main {
             $success = $false
         } else {
             # Step 2b: Process gene data (convert JSON to TSV)
-            $processScript = Join-Path $ScriptDir "process_genes.ps1"
+            $processScript = Join-Path $ScriptDir "scripts\process_genes.ps1"
             $processArgs = @("-DataPath", $OutputPath)
             if ($Force) { $processArgs += "-Force" }
             if ($PanelId) { $processArgs += @("-PanelId", $PanelId) }
@@ -163,15 +164,26 @@ function Main {
             if (-not (Invoke-ExtractionScript -ScriptPath $processScript -ScriptName "Gene Data Processing" -Arguments $processArgs)) {
                 Write-Warning-Log "Gene processing failed, but continuing with other extractions"
                 $success = $false
+            } else {
+                # Step 2c: Merge panel data (consolidate TSVs with panel_id column)
+                $mergeScript = Join-Path $ScriptDir "scripts\merge_panels.ps1"
+                $mergeArgs = @("-DataPath", $OutputPath)
+                if ($Force) { $mergeArgs += "-Force" }
+                if ($Verbose) { $mergeArgs += "-Verbose" }
+                
+                if (-not (Invoke-ExtractionScript -ScriptPath $mergeScript -ScriptName "Panel Data Merging" -Arguments $mergeArgs)) {
+                    Write-Warning-Log "Panel data merging failed, but continuing with other extractions"
+                    $success = $false
+                }
             }
         }
     } else {
-        Write-Log "Skipping gene extraction and processing (--SkipGenes specified)"
+        Write-Log "Skipping gene extraction, processing, and merging (--SkipGenes specified)"
     }
     
     # Step 3: Extract STR data (placeholder - future implementation)
     if (-not $SkipStrs) {
-        $strScript = Join-Path $ScriptDir "extract_strs.ps1"
+        $strScript = Join-Path $ScriptDir "scripts\extract_strs.ps1"
         $strArgs = @("-DataPath", $OutputPath)
         
         if (-not (Invoke-ExtractionScript -ScriptPath $strScript -ScriptName "STR Data Extraction" -Arguments $strArgs -Optional $true)) {
@@ -183,7 +195,7 @@ function Main {
     
     # Step 4: Extract region data (placeholder - future implementation)
     if (-not $SkipRegions) {
-        $regionScript = Join-Path $ScriptDir "extract_regions.ps1"
+        $regionScript = Join-Path $ScriptDir "scripts\extract_regions.ps1"
         $regionArgs = @("-DataPath", $OutputPath)
         
         if (-not (Invoke-ExtractionScript -ScriptPath $regionScript -ScriptName "Region Data Extraction" -Arguments $regionArgs -Optional $true)) {
@@ -206,6 +218,7 @@ function Main {
     Write-Log "  Panel list: Completed"
     Write-Log "  Gene extraction: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
     Write-Log "  Gene processing: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
+    Write-Log "  Panel data merging: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
     Write-Log "  STR data: $(if ($SkipStrs) { 'Skipped' } else { 'Attempted (future implementation)' })"
     Write-Log "  Region data: $(if ($SkipRegions) { 'Skipped' } else { 'Attempted (future implementation)' })"
 }
@@ -217,13 +230,13 @@ PanelApp Australia Complete Data Extraction Wrapper
 
 DESCRIPTION:
     This script orchestrates the complete data extraction process from PanelApp Australia API.
-    It runs panel list extraction followed by detailed data extraction for genes, STRs, and regions.
+    It runs panel list extraction, detailed data extraction for genes, data processing, and merging.
 
 USAGE:
-    .\extract_panels.ps1 [OPTIONS]
+    .\create_PanelAppAusDB.ps1 [OPTIONS]
 
 OPTIONS:
-    -OutputPath PATH     Path to output directory (default: ..\data)
+    -OutputPath PATH     Path to output directory (default: .\data)
     -SkipGenes           Skip gene data extraction
     -SkipStrs            Skip STR data extraction
     -SkipRegions         Skip region data extraction
@@ -232,11 +245,11 @@ OPTIONS:
     -Help                Show this help message
 
 EXAMPLES:
-    .\extract_panels.ps1                           # Full extraction
-    .\extract_panels.ps1 -SkipGenes                # Skip gene extraction
-    .\extract_panels.ps1 -Force                    # Force re-download all
-    .\extract_panels.ps1 -OutputPath "C:\MyData"   # Custom output path
-    .\extract_panels.ps1 -Verbose                  # Verbose logging
+    .\create_PanelAppAusDB.ps1                           # Full extraction
+    .\create_PanelAppAusDB.ps1 -SkipGenes                # Skip gene extraction
+    .\create_PanelAppAusDB.ps1 -Force                    # Force re-download all
+    .\create_PanelAppAusDB.ps1 -OutputPath "C:\MyData"   # Custom output path
+    .\create_PanelAppAusDB.ps1 -Verbose                  # Verbose logging
 
 "@
 }

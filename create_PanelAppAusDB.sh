@@ -3,14 +3,16 @@
 # This script orchestrates the complete data extraction process:
 # 1. Extracts panel list data
 # 2. Extracts detailed gene data for each panel
-# 3. Will extract STR data (placeholder for future implementation)
-# 4. Will extract region data (placeholder for future implementation)
+# 3. Processes gene data (converts JSON to TSV format)
+# 4. Merges panel data (consolidates TSVs with panel_id column)
+# 5. Will extract STR data (placeholder for future implementation)
+# 6. Will extract region data (placeholder for future implementation)
 
 set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUTPUT_PATH="../data"
+OUTPUT_PATH="./data"
 PANEL_ID=""
 SKIP_GENES=0
 SKIP_STRS=0
@@ -54,13 +56,13 @@ PanelApp Australia Complete Data Extraction Wrapper
 
 DESCRIPTION:
     This script orchestrates the complete data extraction process from PanelApp Australia API.
-    It runs panel list extraction followed by detailed data extraction for genes, STRs, and regions.
+    It runs panel list extraction, detailed data extraction for genes, data processing, and merging.
 
 USAGE:
     $0 [OPTIONS]
 
 OPTIONS:
-    --output-path PATH    Path to output directory (default: ../data)
+    --output-path PATH    Path to output directory (default: ./data)
     --panel-id ID         Extract data for specific panel ID only
     --skip-genes         Skip gene data extraction
     --skip-strs          Skip STR data extraction
@@ -167,7 +169,7 @@ main() {
     local success=true
     
     # Step 1: Extract panel list data
-    local panel_list_script="$SCRIPT_DIR/extract_panel_list.sh"
+    local panel_list_script="$SCRIPT_DIR/scripts/extract_panel_list.sh"
     local panel_list_args=("--output-path" "$OUTPUT_PATH")
     
     if ! run_script "$panel_list_script" "Panel List Extraction" false "${panel_list_args[@]}"; then
@@ -187,7 +189,7 @@ main() {
     
     # Step 2: Extract gene data (if not skipped)
     if [[ $SKIP_GENES -eq 0 ]]; then
-        local gene_script="$SCRIPT_DIR/extract_genes.sh"
+        local gene_script="$SCRIPT_DIR/scripts/extract_genes.sh"
         local gene_args=("--data-path" "$OUTPUT_PATH")
         if [[ $FORCE -eq 1 ]]; then
             gene_args+=("--force")
@@ -198,7 +200,7 @@ main() {
         
         if run_script "$gene_script" "Gene Data Extraction" false "${gene_args[@]}"; then
             # Step 2b: Process gene data (convert JSON to TSV)
-            local process_script="$SCRIPT_DIR/process_genes.sh"
+            local process_script="$SCRIPT_DIR/scripts/process_genes.sh"
             local process_args=("--data-path" "$OUTPUT_PATH")
             if [[ $FORCE -eq 1 ]]; then
                 process_args+=("--force")
@@ -210,18 +212,33 @@ main() {
             if ! run_script "$process_script" "Gene Data Processing" false "${process_args[@]}"; then
                 log_message "Gene processing failed, but continuing with other extractions" "WARNING"
                 success=false
+            else
+                # Step 2c: Merge panel data (consolidate TSVs with panel_id column)
+                local merge_script="$SCRIPT_DIR/scripts/merge_panels.sh"
+                local merge_args=("--data-path" "$OUTPUT_PATH")
+                if [[ $FORCE -eq 1 ]]; then
+                    merge_args+=("--force")
+                fi
+                if [[ $VERBOSE -eq 1 ]]; then
+                    merge_args+=("--verbose")
+                fi
+                
+                if ! run_script "$merge_script" "Panel Data Merging" false "${merge_args[@]}"; then
+                    log_message "Panel data merging failed, but continuing with other extractions" "WARNING"
+                    success=false
+                fi
             fi
         else
             log_message "Gene extraction failed, but continuing with other extractions" "WARNING"
             success=false
         fi
     else
-        log_message "Skipping gene extraction and processing (--skip-genes specified)"
+        log_message "Skipping gene extraction, processing, and merging (--skip-genes specified)"
     fi
     
     # Step 3: Extract STR data (placeholder - future implementation)
     if [[ $SKIP_STRS -eq 0 ]]; then
-        local str_script="$SCRIPT_DIR/extract_strs.sh"
+        local str_script="$SCRIPT_DIR/scripts/extract_strs.sh"
         local str_args=("--data-path" "$OUTPUT_PATH")
         
         if ! run_script "$str_script" "STR Data Extraction" true "${str_args[@]}"; then
@@ -233,7 +250,7 @@ main() {
     
     # Step 4: Extract region data (placeholder - future implementation)
     if [[ $SKIP_REGIONS -eq 0 ]]; then
-        local region_script="$SCRIPT_DIR/extract_regions.sh"
+        local region_script="$SCRIPT_DIR/scripts/extract_regions.sh"
         local region_args=("--data-path" "$OUTPUT_PATH")
         
         if ! run_script "$region_script" "Region Data Extraction" true "${region_args[@]}"; then
@@ -256,6 +273,7 @@ main() {
     log_message "  Panel list: Completed"
     log_message "  Gene data: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted'; fi)"
     log_message "  Gene processing: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted'; fi)"
+    log_message "  Panel data merging: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted'; fi)"
     log_message "  STR data: $(if [[ $SKIP_STRS -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted (future implementation)'; fi)"
     log_message "  Region data: $(if [[ $SKIP_REGIONS -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted (future implementation)'; fi)"
 }
@@ -264,8 +282,8 @@ main() {
 parse_args "$@"
 
 # Check if we can find the panel list script
-if [[ ! -f "$SCRIPT_DIR/extract_panel_list.sh" ]]; then
-    log_message "Required script extract_panel_list.sh not found in $SCRIPT_DIR" "ERROR"
+if [[ ! -f "$SCRIPT_DIR/scripts/extract_panel_list.sh" ]]; then
+    log_message "Required script extract_panel_list.sh not found in $SCRIPT_DIR/scripts" "ERROR"
     exit 1
 fi
 

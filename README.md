@@ -19,13 +19,13 @@ A collection of scripts to automatically extract comprehensive data from the [Pa
 
 ## Requirements
 
-### For Bash Scripts (`extract_panels.sh` / `extract_panel_list.sh` / `extract_genes.sh`)
+### For Bash Scripts (`create_PanelAppAusDB.sh` / `extract_panel_list.sh` / `extract_genes.sh`)
 - `bash` shell
 - `curl` command
 - `jq` JSON processor
 - Unix-like environment (Linux, macOS, WSL)
 
-### For PowerShell Scripts (`extract_panels.ps1` / `extract_panel_list.ps1` / `extract_genes.ps1`)
+### For PowerShell Scripts (`create_PanelAppAusDB.ps1` / `extract_panel_list.ps1` / `extract_genes.ps1`)
 - PowerShell 5.1 or later
 - Windows environment
 - Internet access
@@ -59,30 +59,30 @@ Use the wrapper scripts to extract all data types (panel list + genes + STRs + r
 # Set execution policy for current session (if needed)
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 
-# Complete extraction (panel list + genes + processing)
-.\scripts\extract_panels.ps1
+# Complete extraction (panel list + genes + processing + merging)
+.\create_PanelAppAusDB.ps1
 
 # Skip gene extraction (panel list only)
-.\scripts\extract_panels.ps1 -SkipGenes
+.\create_PanelAppAusDB.ps1 -SkipGenes
 
 # Force re-download all data (ignore version tracking)
-.\scripts\extract_panels.ps1 -Force
+.\create_PanelAppAusDB.ps1 -Force
 
 # With custom output path and verbose logging
-.\scripts\extract_panels.ps1 -OutputPath "data" -Verbose
+.\create_PanelAppAusDB.ps1 -OutputPath "data" -Verbose
 ```
 
 #### Bash (Linux/macOS/WSL)
 
 ```bash
 # Make scripts executable
-chmod +x scripts/extract_panels.sh scripts/extract_genes.sh scripts/process_genes.sh
+chmod +x create_PanelAppAusDB.sh scripts/extract_genes.sh scripts/process_genes.sh
 
-# Complete extraction workflow (panel list + genes + processing)
-./scripts/extract_panels.sh
+# Complete extraction workflow (panel list + genes + processing + merging)
+./create_PanelAppAusDB.sh
 
 # With custom output path
-./scripts/extract_panels.sh --output-path "data"
+./create_PanelAppAusDB.sh --output-path "data"
 ```
 
 ### Manual Step-by-Step Extraction
