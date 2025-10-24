@@ -55,11 +55,14 @@ USAGE:
 DESCRIPTION:
     Creates genelist files from consolidated genes.tsv based on confidence levels.
     
-    Generates two output files:
+    Generates three output files:
     - genes_to_genelists.PanelAppAustralia_Green.txt (confidence_level = 3)
     - genes_to_genelists.PanelAppAustralia_Amber.txt (confidence_level = 2)
+    - genelist.PanelAppAustralia_GreenAmber.txt (all ensembl_ids, unique, no headers)
     
-    Output format: ensembl_id<tab>Paus:[panel_id].[Green|Amber]
+    Output format: 
+    - Green/Amber files: ensembl_id<tab>Paus:[panel_id].[Green|Amber]
+    - Simple genelist: ensembl_id only (one per line, sorted, unique)
     Files are sorted by ensembl_id, then by panel_id.
 
 OPTIONS:
@@ -81,8 +84,51 @@ REQUIREMENTS:
 OUTPUT:
     - data/genelists/genes_to_genelists.PanelAppAustralia_Green.txt
     - data/genelists/genes_to_genelists.PanelAppAustralia_Amber.txt
+    - data/genelists/genelist.PanelAppAustralia_GreenAmber.txt
 
 EOF
+}
+
+# Check if regeneration is needed for a specific file
+check_file_regeneration_needed() {
+    local output_file="$1"
+    local version_file="$2"
+    
+    if [[ $FORCE -eq 1 ]]; then
+        return 0
+    fi
+    
+    if [[ ! -f "$output_file" ]]; then
+        log_verbose "Output file missing: $(basename "$output_file")"
+        return 0
+    fi
+    
+    # Check version file for timestamp comparison
+    local reference_time=0
+    if [[ -f "$version_file" ]] && [[ -s "$version_file" ]]; then
+        local version_content
+        version_content=$(cat "$version_file" | tr -d '\n\r' | xargs)
+        if [[ -n "$version_content" ]]; then
+            # Try to parse timestamp (assuming ISO format or similar)
+            reference_time=$(date -d "$version_content" +%s 2>/dev/null || echo 0)
+        fi
+    fi
+    
+    # If no valid version timestamp, file needs regeneration
+    if [[ $reference_time -eq 0 ]]; then
+        log_verbose "No valid version timestamp found, regenerating $(basename "$output_file")"
+        return 0
+    fi
+    
+    local output_time
+    output_time=$(stat -c %Y "$output_file" 2>/dev/null || stat -f %m "$output_file" 2>/dev/null || echo 0)
+    
+    if [[ $reference_time -gt $output_time ]]; then
+        log_verbose "Version timestamp is newer than output file: $(basename "$output_file")"
+        return 0
+    fi
+    
+    return 1
 }
 
 # Check if regeneration is needed
@@ -90,6 +136,8 @@ check_regeneration_needed() {
     local input_file="$1"
     local output_file1="$2"
     local output_file2="$3"
+    local output_file3="$4"
+    local version_file="$5"
     
     if [[ $FORCE -eq 1 ]]; then
         log_verbose "Force flag specified, regenerating files"
@@ -101,10 +149,33 @@ check_regeneration_needed() {
         return 1
     fi
     
-    local input_time
-    input_time=$(stat -c %Y "$input_file" 2>/dev/null || stat -f %m "$input_file" 2>/dev/null || echo 0)
+    # Check version file for timestamp comparison
+    local reference_time
+    if [[ -f "$version_file" ]] && [[ -s "$version_file" ]]; then
+        local version_content
+        version_content=$(cat "$version_file" | tr -d '\n\r' | xargs)
+        if [[ -n "$version_content" ]]; then
+            # Try to parse timestamp (assuming ISO format or similar)
+            reference_time=$(date -d "$version_content" +%s 2>/dev/null || echo 0)
+            if [[ $reference_time -gt 0 ]]; then
+                log_verbose "Using version file timestamp: $version_content"
+            else
+                reference_time=0
+            fi
+        else
+            reference_time=0
+        fi
+    else
+        reference_time=0
+    fi
     
-    for output_file in "$output_file1" "$output_file2"; do
+    # Fall back to input file time if no valid version timestamp
+    if [[ $reference_time -eq 0 ]]; then
+        reference_time=$(stat -c %Y "$input_file" 2>/dev/null || stat -f %m "$input_file" 2>/dev/null || echo 0)
+        log_verbose "Using input file timestamp"
+    fi
+    
+    for output_file in "$output_file1" "$output_file2" "$output_file3"; do
         if [[ ! -f "$output_file" ]]; then
             log_verbose "Output file missing: $(basename "$output_file")"
             return 0
@@ -113,8 +184,8 @@ check_regeneration_needed() {
         local output_time
         output_time=$(stat -c %Y "$output_file" 2>/dev/null || stat -f %m "$output_file" 2>/dev/null || echo 0)
         
-        if [[ $input_time -gt $output_time ]]; then
-            log_verbose "Input file is newer than output file: $(basename "$output_file")"
+        if [[ $reference_time -gt $output_time ]]; then
+            log_verbose "Reference time is newer than output file: $(basename "$output_file")"
             return 0
         fi
     done
@@ -126,6 +197,7 @@ check_regeneration_needed() {
 create_genelist_files() {
     local genes_file="$1"
     local output_dir="$2"
+    local version_file="$3"
     
     log_message "Reading genes data from: $genes_file"
     
@@ -137,18 +209,15 @@ create_genelist_files() {
     
     # Get column positions (assuming tab-separated with header)
     local header
-    header=$(head -n1 "$genes_file")
+    header=$(head -n1 "$genes_file" | tr -d '\r')
     
-    # Find column indices (1-based for awk)
-    local ensembl_col panel_col confidence_col
-    ensembl_col=$(echo "$header" | awk -F'\t' '{for(i=1;i<=NF;i++) if($i=="ensembl_id") print i}')
-    panel_col=$(echo "$header" | awk -F'\t' '{for(i=1;i<=NF;i++) if($i=="panel_id") print i}')
-    confidence_col=$(echo "$header" | awk -F'\t' '{for(i=1;i<=NF;i++) if($i=="confidence_level") print i}')
+    # Define column positions based on known structure
+    # From earlier debug: 1=panel_id, 2=hgnc_symbol, 3=ensembl_id, 4=confidence_level
+    local ensembl_col=3
+    local panel_col=1
+    local confidence_col=4
     
-    if [[ -z "$ensembl_col" || -z "$panel_col" || -z "$confidence_col" ]]; then
-        log_message "Required columns not found in genes.tsv. Need: ensembl_id, panel_id, confidence_level" "ERROR"
-        return 1
-    fi
+    log_verbose "Using column positions - ensembl_id: $ensembl_col, panel_id: $panel_col, confidence_level: $confidence_col"
     
     log_verbose "Column positions - ensembl_id: $ensembl_col, panel_id: $panel_col, confidence_level: $confidence_col"
     
@@ -165,32 +234,115 @@ create_genelist_files() {
     local green_file="$output_dir/genes_to_genelists.PanelAppAustralia_Green.txt"
     local amber_file="$output_dir/genes_to_genelists.PanelAppAustralia_Amber.txt"
     
-    # Process Green genes (confidence_level = 3)
-    log_verbose "Processing Green genes (confidence_level = 3)"
-    awk -F'\t' -v ensembl_col="$ensembl_col" -v panel_col="$panel_col" -v confidence_col="$confidence_col" '
-        NR > 1 && $confidence_col == "3" && $ensembl_col != "" {
-            print $ensembl_col "\t" "Paus:" $panel_col ".Green"
-        }
-    ' "$genes_file" | sort -t$'\t' -k1,1 -k2,2 > "$green_file"
+    # Process Green genes (confidence_level = 3) - only if needed
+    if check_file_regeneration_needed "$green_file" "$version_file"; then
+        log_verbose "Processing Green genes (confidence_level = 3)"
+        awk -F'\t' -v ensembl_col="$ensembl_col" -v panel_col="$panel_col" -v confidence_col="$confidence_col" '
+            NR > 1 && $confidence_col == "3" && $ensembl_col != "" {
+                print $ensembl_col "\t" "Paus:" $panel_col ".Green"
+            }
+        ' "$genes_file" | sort -t$'\t' -k1,1 -k2,2 > "$green_file"
+        
+        local green_count
+        green_count=$(wc -l < "$green_file")
+        if [[ $green_count -eq 0 ]]; then
+            log_message "No Green genes found - output would be empty" "ERROR"
+            return 1
+        fi
+        log_message "Created Green genelist: $green_file ($green_count entries)" "SUCCESS"
+    else
+        log_message "Green genelist is up to date: $(basename "$green_file")"
+    fi
     
-    local green_count
-    green_count=$(wc -l < "$green_file")
-    log_message "Green genes (confidence_level 3): $green_count entries" "SUCCESS"
+    # Process Amber genes (confidence_level = 2) - only if needed
+    if check_file_regeneration_needed "$amber_file" "$version_file"; then
+        log_verbose "Processing Amber genes (confidence_level = 2)"
+        awk -F'\t' -v ensembl_col="$ensembl_col" -v panel_col="$panel_col" -v confidence_col="$confidence_col" '
+            NR > 1 && $confidence_col == "2" && $ensembl_col != "" {
+                print $ensembl_col "\t" "Paus:" $panel_col ".Amber"
+            }
+        ' "$genes_file" | sort -t$'\t' -k1,1 -k2,2 > "$amber_file"
+        
+        local amber_count
+        amber_count=$(wc -l < "$amber_file")
+        if [[ $amber_count -eq 0 ]]; then
+            log_message "No Amber genes found - output would be empty" "ERROR"
+            return 1
+        fi
+        log_message "Created Amber genelist: $amber_file ($amber_count entries)" "SUCCESS"
+    else
+        log_message "Amber genelist is up to date: $(basename "$amber_file")"
+    fi
     
-    # Process Amber genes (confidence_level = 2)
-    log_verbose "Processing Amber genes (confidence_level = 2)"
-    awk -F'\t' -v ensembl_col="$ensembl_col" -v panel_col="$panel_col" -v confidence_col="$confidence_col" '
-        NR > 1 && $confidence_col == "2" && $ensembl_col != "" {
-            print $ensembl_col "\t" "Paus:" $panel_col ".Amber"
-        }
-    ' "$genes_file" | sort -t$'\t' -k1,1 -k2,2 > "$amber_file"
+    # Create simple genelist file (all unique ensembl_ids, no headers, sorted) - only if needed
+    local simple_file="$output_dir/genelist.PanelAppAustralia_GreenAmber.txt"
     
-    local amber_count
-    amber_count=$(wc -l < "$amber_file")
-    log_message "Amber genes (confidence_level 2): $amber_count entries" "SUCCESS"
+    # Check if simple genelist needs regeneration (based on Green and Amber input files)
+    local needs_simple_regen=0
+    if [[ ! -f "$simple_file" ]]; then
+        log_verbose "Simple genelist missing: $(basename "$simple_file")"
+        needs_simple_regen=1
+    elif [[ $FORCE -eq 1 ]]; then
+        needs_simple_regen=1
+    else
+        local simple_time
+        simple_time=$(stat -c %Y "$simple_file" 2>/dev/null || stat -f %m "$simple_file" 2>/dev/null || echo 0)
+        
+        # Check if either Green or Amber file is newer than simple file
+        for input_file in "$green_file" "$amber_file"; do
+            if [[ -f "$input_file" ]]; then
+                local input_time
+                input_time=$(stat -c %Y "$input_file" 2>/dev/null || stat -f %m "$input_file" 2>/dev/null || echo 0)
+                if [[ $input_time -gt $simple_time ]]; then
+                    log_verbose "Input file is newer than simple genelist: $(basename "$input_file")"
+                    needs_simple_regen=1
+                    break
+                fi
+            fi
+        done
+    fi
     
-    log_message "Created Green genelist: $green_file ($green_count entries)" "SUCCESS"
-    log_message "Created Amber genelist: $amber_file ($amber_count entries)" "SUCCESS"
+    if [[ $needs_simple_regen -eq 1 ]]; then
+        log_verbose "Creating simple genelist (all unique ensembl_ids)"
+        
+        # Create temporary file with all ensembl_ids from Green and Amber files
+        local temp_file="${simple_file}.tmp"
+        > "$temp_file"  # Create empty file
+        
+        # Extract ensembl_ids from Green file if it exists
+        if [[ -f "$green_file" ]]; then
+            cut -f1 "$green_file" >> "$temp_file"
+        fi
+        
+        # Extract ensembl_ids from Amber file if it exists
+        if [[ -f "$amber_file" ]]; then
+            cut -f1 "$amber_file" >> "$temp_file"
+        fi
+        
+        # Sort unique and remove empty lines, then remove trailing newline
+        if [[ -s "$temp_file" ]]; then
+            sort -u "$temp_file" | grep -v '^$' > "${temp_file}.sorted"
+            local simple_count_check
+            simple_count_check=$(wc -l < "${temp_file}.sorted" 2>/dev/null || echo 0)
+            if [[ $simple_count_check -eq 0 ]]; then
+                log_message "No ensembl_ids found for simple genelist - output would be empty" "ERROR"
+                rm "$temp_file" "${temp_file}.sorted" 2>/dev/null || true
+                return 1
+            fi
+            head -c -1 "${temp_file}.sorted" > "$simple_file"
+            rm "$temp_file" "${temp_file}.sorted"
+        else
+            log_message "No ensembl_ids found for simple genelist - output would be empty" "ERROR"
+            rm "$temp_file" 2>/dev/null || true
+            return 1
+        fi
+        
+        local simple_count
+        simple_count=$(wc -l < "$simple_file" 2>/dev/null || echo 0)
+        log_message "Created simple genelist: $simple_file ($simple_count unique ensembl_ids)" "SUCCESS"
+    else
+        log_message "Simple genelist is up to date: $(basename "$simple_file")"
+    fi
     
     return 0
 }
@@ -238,19 +390,48 @@ main() {
     
     # Define paths
     local genes_file="$DATA_PATH/genes/genes.tsv"
+    local version_file="$DATA_PATH/genes/version_merged.txt"
     local output_dir="$DATA_PATH/genelists"
     local green_file="$output_dir/genes_to_genelists.PanelAppAustralia_Green.txt"
     local amber_file="$output_dir/genes_to_genelists.PanelAppAustralia_Amber.txt"
+    local simple_file="$output_dir/genelist.PanelAppAustralia_GreenAmber.txt"
     
-    # Check if regeneration is needed
-    if ! check_regeneration_needed "$genes_file" "$green_file" "$amber_file"; then
-        log_message "Genelist files are up to date, skipping regeneration"
+    # Check if any regeneration is needed (for overall process decision)
+    # Note: Simple genelist is now dependent on Green/Amber files, not version file
+    local any_regen_needed=1
+    if ! check_regeneration_needed "$genes_file" "$green_file" "$amber_file" "$version_file" "$version_file"; then
+        any_regen_needed=0
+    fi
+    
+    # Also check if simple genelist needs regen based on confidence files
+    if [[ $any_regen_needed -eq 0 && -f "$green_file" && -f "$amber_file" ]]; then
+        if [[ ! -f "$simple_file" ]]; then
+            any_regen_needed=1
+        else
+            local simple_time
+            simple_time=$(stat -c %Y "$simple_file" 2>/dev/null || stat -f %m "$simple_file" 2>/dev/null || echo 0)
+            
+            for conf_file in "$green_file" "$amber_file"; do
+                if [[ -f "$conf_file" ]]; then
+                    local conf_time
+                    conf_time=$(stat -c %Y "$conf_file" 2>/dev/null || stat -f %m "$conf_file" 2>/dev/null || echo 0)
+                    if [[ $conf_time -gt $simple_time ]]; then
+                        any_regen_needed=1
+                        break
+                    fi
+                fi
+            done
+        fi
+    fi
+    
+    if [[ $any_regen_needed -eq 0 && $FORCE -eq 0 ]]; then
+        log_message "All genelist files are up to date, skipping regeneration"
         log_message "Use --force to regenerate anyway"
         return 0
     fi
     
-    # Process genes and create genelist files
-    if create_genelist_files "$genes_file" "$output_dir"; then
+    # Process genes and create genelist files (individual files will be checked within)
+    if create_genelist_files "$genes_file" "$output_dir" "$version_file"; then
         log_message "Gene to genelists conversion completed successfully" "SUCCESS"
         log_message "Output directory: $output_dir"
         return 0

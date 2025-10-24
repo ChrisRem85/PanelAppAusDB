@@ -59,11 +59,14 @@ USAGE:
 DESCRIPTION:
     Creates genelist files from consolidated genes.tsv based on confidence levels.
     
-    Generates two output files:
+    Generates three output files:
     - genes_to_genelists.PanelAppAustralia_Green.txt (confidence_level = 3)
     - genes_to_genelists.PanelAppAustralia_Amber.txt (confidence_level = 2)
+    - genelist.PanelAppAustralia_GreenAmber.txt (all ensembl_ids, unique, no headers)
     
-    Output format: ensembl_id<tab>Paus:[panel_id].[Green|Amber]
+    Output format: 
+    - Green/Amber files: ensembl_id<tab>Paus:[panel_id].[Green|Amber]
+    - Simple genelist: ensembl_id only (one per line, sorted, unique)
     Files are sorted by ensembl_id, then by panel_id.
 
 OPTIONS:
@@ -84,15 +87,61 @@ REQUIREMENTS:
 OUTPUT:
     - data/genelists/genes_to_genelists.PanelAppAustralia_Green.txt
     - data/genelists/genes_to_genelists.PanelAppAustralia_Amber.txt
+    - data/genelists/genelist.PanelAppAustralia_GreenAmber.txt
 
 "@ -ForegroundColor Yellow
+}
+
+# Check if regeneration is needed for a specific file
+function Test-FileRegenerationNeeded {
+    param(
+        [string]$OutputFile,
+        [string]$VersionFile
+    )
+    
+    if ($Force) {
+        return $true
+    }
+    
+    if (-not (Test-Path $OutputFile)) {
+        Write-Verbose-Log "Output file missing: $(Split-Path $OutputFile -Leaf)"
+        return $true
+    }
+    
+    # Check version file for timestamp comparison
+    $referenceTime = $null
+    if (Test-Path $VersionFile) {
+        try {
+            $versionContent = Get-Content $VersionFile -Raw
+            if ($versionContent -and $versionContent.Trim()) {
+                $referenceTime = [DateTime]::Parse($versionContent.Trim())
+            }
+        } catch {
+            Write-Verbose-Log "Could not parse version file timestamp for $(Split-Path $OutputFile -Leaf)"
+        }
+    }
+    
+    # If no valid version timestamp, file needs regeneration
+    if (-not $referenceTime) {
+        Write-Verbose-Log "No valid version timestamp found, regenerating $(Split-Path $OutputFile -Leaf)"
+        return $true
+    }
+    
+    $outputTime = (Get-Item $OutputFile).LastWriteTime
+    if ($referenceTime -gt $outputTime) {
+        Write-Verbose-Log "Version timestamp is newer than output file: $(Split-Path $OutputFile -Leaf)"
+        return $true
+    }
+    
+    return $false
 }
 
 # Check if regeneration is needed
 function Test-RegenerationNeeded {
     param(
         [string]$InputFile,
-        [string[]]$OutputFiles
+        [string[]]$OutputFiles,
+        [string]$VersionFile
     )
     
     if ($Force) {
@@ -105,7 +154,25 @@ function Test-RegenerationNeeded {
         return $false
     }
     
-    $inputTime = (Get-Item $InputFile).LastWriteTime
+    # Check version file for timestamp comparison
+    $referenceTime = $null
+    if (Test-Path $VersionFile) {
+        try {
+            $versionContent = Get-Content $VersionFile -Raw
+            if ($versionContent -and $versionContent.Trim()) {
+                $referenceTime = [DateTime]::Parse($versionContent.Trim())
+                Write-Verbose-Log "Using version file timestamp: $referenceTime"
+            }
+        } catch {
+            Write-Verbose-Log "Could not parse version file timestamp, using input file time"
+        }
+    }
+    
+    # Fall back to input file time if no valid version timestamp
+    if (-not $referenceTime) {
+        $referenceTime = (Get-Item $InputFile).LastWriteTime
+        Write-Verbose-Log "Using input file timestamp: $referenceTime"
+    }
     
     foreach ($outputFile in $OutputFiles) {
         if (-not (Test-Path $outputFile)) {
@@ -114,8 +181,8 @@ function Test-RegenerationNeeded {
         }
         
         $outputTime = (Get-Item $outputFile).LastWriteTime
-        if ($inputTime -gt $outputTime) {
-            Write-Verbose-Log "Input file is newer than output file: $(Split-Path $outputFile -Leaf)"
+        if ($referenceTime -gt $outputTime) {
+            Write-Verbose-Log "Reference time is newer than output file: $(Split-Path $outputFile -Leaf)"
             return $true
         }
     }
@@ -127,7 +194,8 @@ function Test-RegenerationNeeded {
 function New-GenelistFiles {
     param(
         [string]$GenesFile,
-        [string]$OutputDir
+        [string]$OutputDir,
+        [string]$VersionFile
     )
     
     try {
@@ -176,17 +244,89 @@ function New-GenelistFiles {
             Write-Verbose-Log "Created output directory: $OutputDir"
         }
         
-        # Write Green genelist file
+        # Write Green genelist file (only if needed)
         $greenFile = Join-Path $OutputDir "genes_to_genelists.PanelAppAustralia_Green.txt"
-        $greenOutput = $greenGenes | ForEach-Object { "$($_.ensembl_id)`t$($_.genelist)" }
-        $greenOutput | Out-File -FilePath $greenFile -Encoding UTF8
-        Write-Success-Log "Created Green genelist: $greenFile ($($greenGenes.Count) entries)"
+        if (Test-FileRegenerationNeeded -OutputFile $greenFile -VersionFile $VersionFile) {
+            $greenOutput = $greenGenes | ForEach-Object { "$($_.ensembl_id)`t$($_.genelist)" }
+            if ($greenOutput.Count -eq 0) {
+                Write-Error-Log "No Green genes found - output would be empty"
+                return $false
+            }
+            $greenOutput | Out-File -FilePath $greenFile -Encoding UTF8
+            Write-Success-Log "Created Green genelist: $greenFile ($($greenGenes.Count) entries)"
+        } else {
+            Write-Log "Green genelist is up to date: $(Split-Path $greenFile -Leaf)"
+        }
         
-        # Write Amber genelist file
+        # Write Amber genelist file (only if needed)
         $amberFile = Join-Path $OutputDir "genes_to_genelists.PanelAppAustralia_Amber.txt"
-        $amberOutput = $amberGenes | ForEach-Object { "$($_.ensembl_id)`t$($_.genelist)" }
-        $amberOutput | Out-File -FilePath $amberFile -Encoding UTF8
-        Write-Success-Log "Created Amber genelist: $amberFile ($($amberGenes.Count) entries)"
+        if (Test-FileRegenerationNeeded -OutputFile $amberFile -VersionFile $VersionFile) {
+            $amberOutput = $amberGenes | ForEach-Object { "$($_.ensembl_id)`t$($_.genelist)" }
+            if ($amberOutput.Count -eq 0) {
+                Write-Error-Log "No Amber genes found - output would be empty"
+                return $false
+            }
+            $amberOutput | Out-File -FilePath $amberFile -Encoding UTF8
+            Write-Success-Log "Created Amber genelist: $amberFile ($($amberGenes.Count) entries)"
+        } else {
+            Write-Log "Amber genelist is up to date: $(Split-Path $amberFile -Leaf)"
+        }
+        
+        # Write simple genelist file (all unique ensembl_ids, no headers, sorted) - only if needed
+        $simpleFile = Join-Path $OutputDir "genelist.PanelAppAustralia_GreenAmber.txt"
+        
+        # Check if simple genelist needs regeneration (based on Green and Amber input files)
+        $needsSimpleRegen = $false
+        if (-not (Test-Path $simpleFile)) {
+            Write-Verbose-Log "Simple genelist missing: $(Split-Path $simpleFile -Leaf)"
+            $needsSimpleRegen = $true
+        } elseif ($Force) {
+            $needsSimpleRegen = $true
+        } else {
+            $simpleTime = (Get-Item $simpleFile).LastWriteTime
+            $inputFiles = @($greenFile, $amberFile)
+            
+            foreach ($inputFile in $inputFiles) {
+                if (Test-Path $inputFile) {
+                    $inputTime = (Get-Item $inputFile).LastWriteTime
+                    if ($inputTime -gt $simpleTime) {
+                        Write-Verbose-Log "Input file is newer than simple genelist: $(Split-Path $inputFile -Leaf)"
+                        $needsSimpleRegen = $true
+                        break
+                    }
+                }
+            }
+        }
+        
+        if ($needsSimpleRegen) {
+            # Read ensembl_ids from Green and Amber genelist files
+            $allEnsemblIds = @()
+            
+            if (Test-Path $greenFile) {
+                $greenIds = Get-Content $greenFile | ForEach-Object { $_.Split("`t")[0] }
+                $allEnsemblIds += $greenIds
+            }
+            
+            if (Test-Path $amberFile) {
+                $amberIds = Get-Content $amberFile | ForEach-Object { $_.Split("`t")[0] }
+                $allEnsemblIds += $amberIds
+            }
+            
+            # Get unique, sorted ensembl_ids
+            $uniqueEnsemblIds = @($allEnsemblIds | Where-Object { $_ -ne '' } | Sort-Object -Unique)
+            
+            if ($uniqueEnsemblIds.Count -eq 0) {
+                Write-Error-Log "No ensembl_ids found for simple genelist - output would be empty"
+                return $false
+            }
+            
+            # Write without trailing newline
+            $simpleContent = $uniqueEnsemblIds -join "`n"
+            [System.IO.File]::WriteAllText($simpleFile, $simpleContent, [System.Text.Encoding]::UTF8)
+            Write-Success-Log "Created simple genelist: $simpleFile ($($uniqueEnsemblIds.Count) unique ensembl_ids)"
+        } else {
+            Write-Log "Simple genelist is up to date: $(Split-Path $simpleFile -Leaf)"
+        }
         
         return $true
         
@@ -213,21 +353,45 @@ function Main {
     
     # Define paths
     $genesFile = Join-Path $DataPath "genes\genes.tsv"
+    $versionFile = Join-Path $DataPath "genes\version_merged.txt"
     $outputDir = Join-Path $DataPath "genelists"
     
     $greenFile = Join-Path $outputDir "genes_to_genelists.PanelAppAustralia_Green.txt"
     $amberFile = Join-Path $outputDir "genes_to_genelists.PanelAppAustralia_Amber.txt"
-    $outputFiles = @($greenFile, $amberFile)
+    $simpleFile = Join-Path $outputDir "genelist.PanelAppAustralia_GreenAmber.txt"
+    $outputFiles = @($greenFile, $amberFile, $simpleFile)
     
-    # Check if regeneration is needed
-    if (-not (Test-RegenerationNeeded -InputFile $genesFile -OutputFiles $outputFiles)) {
-        Write-Log "Genelist files are up to date, skipping regeneration"
+    # Check if any regeneration is needed (for overall process decision)
+    # Note: Simple genelist is now dependent on Green/Amber files, not version file
+    $confidenceFiles = @($greenFile, $amberFile)
+    $anyRegenNeeded = (Test-RegenerationNeeded -InputFile $genesFile -OutputFiles $confidenceFiles -VersionFile $versionFile)
+    
+    # Also check if simple genelist needs regen based on confidence files
+    if (-not $anyRegenNeeded -and (Test-Path $greenFile) -and (Test-Path $amberFile)) {
+        if (-not (Test-Path $simpleFile)) {
+            $anyRegenNeeded = $true
+        } else {
+            $simpleTime = (Get-Item $simpleFile).LastWriteTime
+            foreach ($confFile in $confidenceFiles) {
+                if (Test-Path $confFile) {
+                    $confTime = (Get-Item $confFile).LastWriteTime
+                    if ($confTime -gt $simpleTime) {
+                        $anyRegenNeeded = $true
+                        break
+                    }
+                }
+            }
+        }
+    }
+    
+    if (-not $anyRegenNeeded -and -not $Force) {
+        Write-Log "All genelist files are up to date, skipping regeneration"
         Write-Log "Use -Force to regenerate anyway"
         return 0
     }
     
-    # Process genes and create genelist files
-    if (New-GenelistFiles -GenesFile $genesFile -OutputDir $outputDir) {
+    # Process genes and create genelist files (individual files will be checked within)
+    if (New-GenelistFiles -GenesFile $genesFile -OutputDir $outputDir -VersionFile $versionFile) {
         Write-Success-Log "Gene to genelists conversion completed successfully"
         Write-Log "Output directory: $outputDir"
         return 0

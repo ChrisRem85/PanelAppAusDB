@@ -2,7 +2,7 @@
 
 ## Overview
 
-The GenesToGenelists converter scripts transform the consolidated genes.tsv file into specialized genelist files based on confidence levels. These files are formatted for integration with external gene analysis tools and databases.
+The GenesToGenelists converter scripts transform the consolidated genes.tsv file into specialized genelist files based on confidence levels and create a simple genelist with all unique ensembl_ids. These files are formatted for integration with external gene analysis tools and databases.
 
 ## Available Scripts
 
@@ -50,16 +50,18 @@ Creates genelist files in the data directory:
 data/
 └── genelists/
     ├── genes_to_genelists.PanelAppAustralia_Green.txt    # Confidence level 3 genes
-    └── genes_to_genelists.PanelAppAustralia_Amber.txt    # Confidence level 2 genes
+    ├── genes_to_genelists.PanelAppAustralia_Amber.txt    # Confidence level 2 genes
+    └── genelist.PanelAppAustralia.txt                    # All unique ensembl_ids
 ```
 
 ## Key Features
 
 - ✅ **Confidence-based filtering** - Separate files for Green (3) and Amber (2) confidence levels
-- ✅ **Standardized format** - Two-column output: ensembl_id and formatted panel identifier
+- ✅ **Simple genelist** - All unique ensembl_ids in a single column format
+- ✅ **Standardized format** - Two-column output for confidence files, one-column for simple genelist
 - ✅ **Proper sorting** - Sorted by ensembl_id, then by panel_id for consistency
 - ✅ **Panel identification** - Panel IDs formatted as "Paus:[panel_id].[Green|Amber]"
-- ✅ **Incremental processing** - Only regenerates when input files are newer
+- ✅ **Version-aware processing** - Uses version_merged.txt timestamp for regeneration decisions
 - ✅ **Input validation** - Verifies required columns exist in genes.tsv
 - ✅ **Cross-platform** - Both PowerShell and Bash implementations
 - ✅ **Empty value filtering** - Excludes genes with empty ensembl_id values
@@ -86,18 +88,34 @@ ENSG00000001631	Paus:3763.Amber
 ENSG00000003989	Paus:137.Amber
 ```
 
+**Simple genelist (all confidence levels):**
+```
+ENSG00000000419
+ENSG00000001626
+ENSG00000001631
+ENSG00000003989
+ENSG00000005007
+```
+
 ### Column Descriptions
+
+**Green/Amber files:**
 - **Column 1**: Ensembl gene ID (ENSG identifiers)
 - **Column 2**: Formatted panel identifier with confidence level suffix
+
+**Simple genelist file:**
+- **Column 1**: Ensembl gene ID (ENSG identifiers) - unique, sorted, no headers
 
 ## Processing Logic
 
 1. **Input Validation**: Checks for required columns (ensembl_id, confidence_level, panel_id)
-2. **Confidence Filtering**: Separates genes by confidence_level (2 = Amber, 3 = Green)
-3. **Empty Value Filtering**: Excludes records with empty ensembl_id values
-4. **Format Transformation**: Creates "Paus:[panel_id].[Green|Amber]" identifiers
-5. **Sorting**: Orders output by ensembl_id first, then by panel identifier
-6. **File Output**: Writes tab-separated files without headers
+2. **Version Check**: Uses version_merged.txt timestamp to determine if regeneration is needed
+3. **Confidence Filtering**: Separates genes by confidence_level (2 = Amber, 3 = Green)
+4. **Empty Value Filtering**: Excludes records with empty ensembl_id values
+5. **Format Transformation**: Creates "Paus:[panel_id].[Green|Amber]" identifiers
+6. **Simple Genelist Creation**: Extracts all unique ensembl_ids sorted alphanumerically
+7. **Sorting**: Orders output by ensembl_id first, then by panel identifier
+8. **File Output**: Writes tab-separated confidence files and single-column simple genelist without headers
 
 ## Use Cases
 
@@ -105,6 +123,7 @@ ENSG00000003989	Paus:137.Amber
 - **Database Integration**: Load panel-specific gene sets into research databases  
 - **Quality Control**: Separate high-confidence (Green) from moderate-confidence (Amber) genes
 - **Cross-Panel Studies**: Compare gene membership across different panels by confidence level
+- **Simple Gene Lists**: Use the basic genelist.PanelAppAustralia.txt for tools requiring simple ensembl_id lists
 - **External Tool Integration**: Format compatible with various bioinformatics pipelines
 
 ## Statistics Example

@@ -238,7 +238,8 @@ data/
 │   └── genes.tsv.log                 # ← Detailed validation log
 ├── genelists/
 │   ├── genes_to_genelists.PanelAppAustralia_Green.txt  # ← High confidence genes (level 3)
-│   └── genes_to_genelists.PanelAppAustralia_Amber.txt  # ← Moderate confidence genes (level 2)
+│   ├── genes_to_genelists.PanelAppAustralia_Amber.txt  # ← Moderate confidence genes (level 2)
+│   └── genelist.PanelAppAustralia.txt                  # ← All unique ensembl_ids (simple format)
 └── panels/[panel_id]/
     └── genes/
         ├── json/                     # Raw API data
@@ -254,7 +255,7 @@ data/
 | **`genes/genes.tsv`** | **Cross-panel consolidated gene dataset with tags** |
 | **`genes/version_merged.txt`** | Clean merge timestamp (no trailing newlines) |
 | **`genes/genes.tsv.log`** | Detailed validation results and metrics |
-| **`genelists/*.txt`** | **Confidence-based genelist files for external tools** |
+| **`genelists/*.txt`** | **Confidence-based genelist files and simple ensembl_id list for external tools** |
 | **`panels/*/genes.tsv`** | Individual panel gene data with extracted tags |
 
 > **💡 Pro Tip**: The consolidated `genes/genes.tsv` file includes a `panel_id` column and extracted tags, making it perfect for cross-panel analysis and research. All version files now use clean timestamps without trailing newlines for better automation compatibility.
