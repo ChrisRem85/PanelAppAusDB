@@ -54,7 +54,7 @@ function Write-Verbose-Log {
 function Show-Usage {
     Write-Host @"
 USAGE:
-    create_GenesToGenelists.ps1 [OPTIONS]
+    create_Genelists.ps1 [OPTIONS]
 
 DESCRIPTION:
     Creates genelist files from consolidated genes.tsv based on confidence levels.
@@ -73,9 +73,9 @@ OPTIONS:
     -Help               Show this help message
 
 EXAMPLES:
-    create_GenesToGenelists.ps1
-    create_GenesToGenelists.ps1 -DataPath "C:\data" -Verbose
-    create_GenesToGenelists.ps1 -Force -Verbose
+    create_Genelists.ps1
+    create_Genelists.ps1 -DataPath "C:\data" -Verbose
+    create_Genelists.ps1 -Force -Verbose
 
 REQUIREMENTS:
     - Consolidated genes.tsv file in data/genes/genes.tsv

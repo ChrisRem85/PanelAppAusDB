@@ -126,23 +126,23 @@ For advanced usage or specific requirements, detailed documentation is available
 
 #### 📋 Core Processing Steps
 
-1. **[Panel List Extraction](docs/extract_panel_list.md)**
+1. **[Panel List Extraction](docs/extract_PanelList.md)**
    - Extract comprehensive panel metadata from PanelApp Australia API
    - Creates `panel_list.tsv` with panel information and statistics
 
-2. **[Gene Data Extraction](docs/extract_genes.md)**  
+2. **[Gene Data Extraction](docs/extract_Genes.md)**  
    - Download detailed gene data for each panel with incremental updates
    - Version tracking and intelligent change detection
 
-3. **[Gene Data Processing](docs/process_genes.md)**
+3. **[Gene Data Processing](docs/process_Genes.md)**
    - Convert raw JSON data to structured TSV format
    - Built-in validation and automatic missing file detection
 
-4. **[Panel Data Merging](docs/merge_panels.md)**
+4. **[Panel Data Merging](docs/merge_Panels.md)**
    - Consolidate individual panel data into cross-panel datasets with comprehensive validation
    - Enables multi-panel analysis with panel_id traceability and data integrity verification
 
-5. **[Gene to Genelists Conversion](docs/create_GenesToGenelists.md)**
+5. **[Gene to Genelists Conversion](docs/create_Genelists.md)**
    - Convert consolidated genes data to specialized genelist format files
    - Separate files for different confidence levels (Green/Amber) with standardized formatting
 
@@ -154,27 +154,27 @@ This section provides comprehensive information about all individual scripts for
 
 #### Core Extraction Scripts
 
-1. **[Panel List Extraction](docs/extract_panel_list.md)**
+1. **[Panel List Extraction](docs/extract_PanelList.md)**
    - Extract panel metadata from PanelApp Australia API
    - Creates `panel_list.tsv` with comprehensive panel information
    - Available in PowerShell and Bash versions
 
-2. **[Gene Data Extraction](docs/extract_genes.md)**
+2. **[Gene Data Extraction](docs/extract_Genes.md)**
    - Download detailed gene data for each panel
    - Incremental extraction with version tracking
    - Available in PowerShell and Bash versions
 
-3. **[Gene Data Processing](docs/process_genes.md)**
+3. **[Gene Data Processing](docs/process_Genes.md)**
    - Convert JSON gene data to structured TSV format
    - Built-in validation and missing file detection
    - Available in PowerShell and Bash versions
 
-4. **[Panel Data Merging](docs/merge_panels.md)**
+4. **[Panel Data Merging](docs/merge_Panels.md)**
    - Consolidate individual panel data into cross-panel datasets with validation
    - Adds panel_id columns for traceability with data integrity checks
    - Available in PowerShell and Bash versions with comprehensive validation
 
-5. **[Gene to Genelists Conversion](docs/create_GenesToGenelists.md)**
+5. **[Gene to Genelists Conversion](docs/create_Genelists.md)**
    - Convert consolidated genes data to specialized genelist format files
    - Separate files for different confidence levels (Green/Amber) with standardized formatting
    - Available in PowerShell and Bash versions
@@ -283,11 +283,11 @@ To modify settings, edit the configuration variables at the top of each script f
 
 ### Quick Links
 - **[📖 Complete Documentation](docs/README.md)** - Comprehensive guide to all scripts
-- **[📋 Panel List Scripts](docs/extract_panel_list.md)** - Extract panel metadata  
-- **[🧬 Gene Extraction Scripts](docs/extract_genes.md)** - Download gene data
-- **[⚡ Gene Processing Scripts](docs/process_genes.md)** - Convert JSON to TSV
-- **[🔀 Panel Merging Scripts](docs/merge_panels.md)** - Create consolidated datasets
-- **[📝 Genelist Converter Scripts](docs/create_GenesToGenelists.md)** - Generate confidence-based genelists
+- **[📋 Panel List Scripts](docs/extract_PanelList.md)** - Extract panel metadata  
+- **[🧬 Gene Extraction Scripts](docs/extract_Genes.md)** - Download gene data
+- **[⚡ Gene Processing Scripts](docs/process_Genes.md)** - Convert JSON to TSV
+- **[🔀 Panel Merging Scripts](docs/merge_Panels.md)** - Create consolidated datasets
+- **[📝 Genelist Converter Scripts](docs/create_Genelists.md)** - Generate confidence-based genelists
 
 ### External Resources
 - **[PanelApp Australia API](https://panelapp-aus.org/api/docs/)** - Official API documentation

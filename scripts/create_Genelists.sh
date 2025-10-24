@@ -50,7 +50,7 @@ log_verbose() {
 show_usage() {
     cat << 'EOF'
 USAGE:
-    create_GenesToGenelists.sh [OPTIONS]
+    create_Genelists.sh [OPTIONS]
 
 DESCRIPTION:
     Creates genelist files from consolidated genes.tsv based on confidence levels.
@@ -69,9 +69,9 @@ OPTIONS:
     --help              Show this help message
 
 EXAMPLES:
-    ./create_GenesToGenelists.sh
-    ./create_GenesToGenelists.sh --data-path "/path/to/data" --verbose
-    ./create_GenesToGenelists.sh --force --verbose
+    ./create_Genelists.sh
+    ./create_Genelists.sh --data-path "/path/to/data" --verbose
+    ./create_Genelists.sh --force --verbose
 
 REQUIREMENTS:
     - Consolidated genes.tsv file in data/genes/genes.tsv

@@ -6,24 +6,24 @@ The panel list extraction scripts download comprehensive panel metadata from the
 
 ## Available Scripts
 
-- **PowerShell**: `scripts/extract_panel_list.ps1`
-- **Bash**: `scripts/extract_panel_list.sh`
+- **PowerShell**: `scripts/extract_PanelList.ps1`
+- **Bash**: `scripts/extract_PanelList.sh`
 
 ## Usage
 
 ### PowerShell
 ```powershell
 # Run just the panel list extraction script
-.\scripts\extract_panel_list.ps1
+.\scripts\extract_PanelList.ps1
 
 # Or with custom output path
-.\scripts\extract_panel_list.ps1 -OutputPath "data"
+.\scripts\extract_PanelList.ps1 -OutputPath "data"
 ```
 
 ### Bash
 ```bash
 # Extract panel list only
-./scripts/extract_panel_list.sh
+./scripts/extract_PanelList.sh
 ```
 
 ## Parameters

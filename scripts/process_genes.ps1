@@ -23,7 +23,7 @@ DESCRIPTION:
     Only processes panels that need processing based on version timestamps.
 
 USAGE:
-    .\process_genes.ps1 [OPTIONS]
+    .\process_Genes.ps1 [OPTIONS]
 
 OPTIONS:
     -DataPath PATH      Path to data directory (default: ..\data)
@@ -33,11 +33,11 @@ OPTIONS:
     -Help               Show this help message
 
 EXAMPLES:
-    .\process_genes.ps1                          # Process all panels with incremental logic
-    .\process_genes.ps1 -PanelId 6               # Process only panel 6
-    .\process_genes.ps1 -Force                   # Force process all panels
-    .\process_genes.ps1 -DataPath "C:\MyData"    # Custom data path
-    .\process_genes.ps1 -Verbose                 # Verbose logging
+    .\process_Genes.ps1                          # Process all panels with incremental logic
+    .\process_Genes.ps1 -PanelId 6               # Process only panel 6
+    .\process_Genes.ps1 -Force                   # Force process all panels
+    .\process_Genes.ps1 -DataPath "C:\MyData"    # Custom data path
+    .\process_Genes.ps1 -Verbose                 # Verbose logging
 
 "@
 }

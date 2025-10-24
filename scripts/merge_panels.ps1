@@ -54,7 +54,7 @@ function Write-Verbose-Log {
 
 function Show-Help {
     @"
-USAGE: merge_panels.ps1 [OPTIONS] [ENTITY_TYPE]
+USAGE: merge_Panels.ps1 [OPTIONS] [ENTITY_TYPE]
 
 DESCRIPTION:
     Merges individual panel TSV files into consolidated files with panel_id columns.
@@ -71,9 +71,9 @@ OPTIONS:
     -Help              Show this help message
 
 EXAMPLES:
-    merge_panels.ps1 genes
-    merge_panels.ps1 -DataPath "C:\data" -Verbose all
-    merge_panels.ps1 -Force strs
+    merge_Panels.ps1 genes
+    merge_Panels.ps1 -DataPath "C:\data" -Verbose all
+    merge_Panels.ps1 -Force strs
 
 OUTPUT:
     Creates merged files in data/[entity_type]/ directories:

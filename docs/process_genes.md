@@ -6,42 +6,42 @@ The gene processing scripts convert raw JSON gene data into structured TSV forma
 
 ## Available Scripts
 
-- **PowerShell**: `scripts/process_genes.ps1`
-- **Bash**: `scripts/process_genes.sh`
+- **PowerShell**: `scripts/process_Genes.ps1`
+- **Bash**: `scripts/process_Genes.sh`
 
 ## Usage
 
 ### PowerShell
 ```powershell
 # Process all panels (detects missing TSV files automatically)
-.\scripts\process_genes.ps1
+.\scripts\process_Genes.ps1
 
 # Process specific panel ID only
-.\scripts\process_genes.ps1 -PanelId 6
+.\scripts\process_Genes.ps1 -PanelId 6
 
 # Force reprocessing even if files are up-to-date
-.\scripts\process_genes.ps1 -Force
+.\scripts\process_Genes.ps1 -Force
 
 # With verbose logging for detailed progress
-.\scripts\process_genes.ps1 -Verbose
+.\scripts\process_Genes.ps1 -Verbose
 
 # Custom data path with specific panel
-.\scripts\process_genes.ps1 -DataPath "data" -PanelId 6 -Verbose
+.\scripts\process_Genes.ps1 -DataPath "data" -PanelId 6 -Verbose
 ```
 
 ### Bash
 ```bash
 # Process genes (JSON to TSV)
-./scripts/process_genes.sh
+./scripts/process_Genes.sh
 
 # Process specific panel
-./scripts/process_genes.sh --panel-id 6
+./scripts/process_Genes.sh --panel-id 6
 
 # Force reprocessing
-./scripts/process_genes.sh --force
+./scripts/process_Genes.sh --force
 
 # With verbose logging
-./scripts/process_genes.sh --verbose
+./scripts/process_Genes.sh --verbose
 ```
 
 ## Parameters

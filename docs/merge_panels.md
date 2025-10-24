@@ -6,39 +6,39 @@ The merge panels scripts consolidate individual panel TSV files into unified dat
 
 ## Available Scripts
 
-- **PowerShell**: `scripts/merge_panels.ps1`
-- **Bash**: `scripts/merge_panels.sh`
+- **PowerShell**: `scripts/merge_Panels.ps1`
+- **Bash**: `scripts/merge_Panels.sh`
 
 ## Usage
 
 ### PowerShell
 ```powershell
 # Merge all entity types (genes, strs, regions)
-.\scripts\merge_panels.ps1
+.\scripts\merge_Panels.ps1
 
 # Merge only genes data
-.\scripts\merge_panels.ps1 -EntityType genes
+.\scripts\merge_Panels.ps1 -EntityType genes
 
 # Force re-merge even if up to date
-.\scripts\merge_panels.ps1 -Force
+.\scripts\merge_Panels.ps1 -Force
 
 # Custom data path with verbose logging
-.\scripts\merge_panels.ps1 -DataPath "data" -Verbose
+.\scripts\merge_Panels.ps1 -DataPath "data" -Verbose
 ```
 
 ### Bash
 ```bash
 # Merge all entity types
-./scripts/merge_panels.sh
+./scripts/merge_Panels.sh
 
 # Merge only genes data  
-./scripts/merge_panels.sh --entity-type genes
+./scripts/merge_Panels.sh --entity-type genes
 
 # Force re-merge even if up to date
-./scripts/merge_panels.sh --force
+./scripts/merge_Panels.sh --force
 
 # Custom data path with verbose logging
-./scripts/merge_panels.sh --data-path "data" --verbose
+./scripts/merge_Panels.sh --data-path "data" --verbose
 ```
 
 ## Parameters

@@ -169,7 +169,7 @@ main() {
     local success=true
     
     # Step 1: Extract panel list data
-    local panel_list_script="$SCRIPT_DIR/scripts/extract_panel_list.sh"
+    local panel_list_script="$SCRIPT_DIR/scripts/extract_PanelList.sh"
     local panel_list_args=("--output-path" "$OUTPUT_PATH")
     
     if ! run_script "$panel_list_script" "Panel List Extraction" false "${panel_list_args[@]}"; then
@@ -189,7 +189,7 @@ main() {
     
     # Step 2: Extract gene data (if not skipped)
     if [[ $SKIP_GENES -eq 0 ]]; then
-        local gene_script="$SCRIPT_DIR/scripts/extract_genes.sh"
+        local gene_script="$SCRIPT_DIR/scripts/extract_Genes.sh"
         local gene_args=("--data-path" "$OUTPUT_PATH")
         if [[ $FORCE -eq 1 ]]; then
             gene_args+=("--force")
@@ -200,7 +200,7 @@ main() {
         
         if run_script "$gene_script" "Gene Data Extraction" false "${gene_args[@]}"; then
             # Step 2b: Process gene data (convert JSON to TSV)
-            local process_script="$SCRIPT_DIR/scripts/process_genes.sh"
+            local process_script="$SCRIPT_DIR/scripts/process_Genes.sh"
             local process_args=("--data-path" "$OUTPUT_PATH")
             if [[ $FORCE -eq 1 ]]; then
                 process_args+=("--force")
@@ -214,7 +214,7 @@ main() {
                 success=false
             else
                 # Step 2c: Merge panel data (consolidate TSVs with panel_id column)
-                local merge_script="$SCRIPT_DIR/scripts/merge_panels.sh"
+                local merge_script="$SCRIPT_DIR/scripts/merge_Panels.sh"
                 local merge_args=("--data-path" "$OUTPUT_PATH")
                 if [[ $FORCE -eq 1 ]]; then
                     merge_args+=("--force")
@@ -282,8 +282,8 @@ main() {
 parse_args "$@"
 
 # Check if we can find the panel list script
-if [[ ! -f "$SCRIPT_DIR/scripts/extract_panel_list.sh" ]]; then
-    log_message "Required script extract_panel_list.sh not found in $SCRIPT_DIR/scripts" "ERROR"
+if [[ ! -f "$SCRIPT_DIR/scripts/extract_PanelList.sh" ]]; then
+    log_message "Required script extract_PanelList.sh not found in $SCRIPT_DIR/scripts" "ERROR"
     exit 1
 fi
 

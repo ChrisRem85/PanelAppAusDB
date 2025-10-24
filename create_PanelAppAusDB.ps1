@@ -126,7 +126,7 @@ function Main {
     $success = $true
     
     # Step 1: Extract panel list data
-    $panelListScript = Join-Path $ScriptDir "scripts\extract_panel_list.ps1"
+    $panelListScript = Join-Path $ScriptDir "scripts\extract_PanelList.ps1"
     $panelListArgs = @("-OutputPath", $OutputPath)
     
     if (-not (Invoke-ExtractionScript -ScriptPath $panelListScript -ScriptName "Panel List Extraction" -Arguments $panelListArgs)) {
@@ -146,7 +146,7 @@ function Main {
     
     # Step 2: Extract gene data (if not skipped)
     if (-not $SkipGenes) {
-        $geneScript = Join-Path $ScriptDir "scripts\extract_genes.ps1"
+        $geneScript = Join-Path $ScriptDir "scripts\extract_Genes.ps1"
         $geneArgs = @("-DataPath", $OutputPath)
         if ($Force) { $geneArgs += "-Force" }
         if ($PanelId) { $geneArgs += @("-PanelId", $PanelId) }
@@ -156,7 +156,7 @@ function Main {
             $success = $false
         } else {
             # Step 2b: Process gene data (convert JSON to TSV)
-            $processScript = Join-Path $ScriptDir "scripts\process_genes.ps1"
+            $processScript = Join-Path $ScriptDir "scripts\process_Genes.ps1"
             $processArgs = @("-DataPath", $OutputPath)
             if ($Force) { $processArgs += "-Force" }
             if ($PanelId) { $processArgs += @("-PanelId", $PanelId) }
@@ -166,7 +166,7 @@ function Main {
                 $success = $false
             } else {
                 # Step 2c: Merge panel data (consolidate TSVs with panel_id column)
-                $mergeScript = Join-Path $ScriptDir "scripts\merge_panels.ps1"
+                $mergeScript = Join-Path $ScriptDir "scripts\merge_Panels.ps1"
                 $mergeArgs = @("-DataPath", $OutputPath)
                 if ($Force) { $mergeArgs += "-Force" }
                 if ($Verbose) { $mergeArgs += "-Verbose" }

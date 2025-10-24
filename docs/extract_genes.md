@@ -6,42 +6,42 @@ The gene extraction scripts download detailed gene data for each panel with inte
 
 ## Available Scripts
 
-- **PowerShell**: `scripts/extract_genes.ps1`
-- **Bash**: `scripts/extract_genes.sh`
+- **PowerShell**: `scripts/extract_Genes.ps1`
+- **Bash**: `scripts/extract_Genes.sh`
 
 ## Usage
 
 ### PowerShell
 ```powershell
 # After panel extraction, extract detailed gene data
-.\scripts\extract_genes.ps1
+.\scripts\extract_Genes.ps1
 
 # Use specific data path
-.\scripts\extract_genes.ps1 -DataPath "data"
+.\scripts\extract_Genes.ps1 -DataPath "data"
 
 # Extract genes for specific panel ID only
-.\scripts\extract_genes.ps1 -PanelId 6
+.\scripts\extract_Genes.ps1 -PanelId 6
 
 # Force re-download all panels (bypass version checking)
-.\scripts\extract_genes.ps1 -Force
+.\scripts\extract_Genes.ps1 -Force
 
 # Combine parameters: specific panel with verbose logging
-.\scripts\extract_genes.ps1 -PanelId 6 -Force -Verbose
+.\scripts\extract_Genes.ps1 -PanelId 6 -Force -Verbose
 ```
 
 ### Bash
 ```bash
 # Extract genes for all panels
-./scripts/extract_genes.sh
+./scripts/extract_Genes.sh
 
 # Extract genes for specific panel
-./scripts/extract_genes.sh --panel-id 6
+./scripts/extract_Genes.sh --panel-id 6
 
 # Use specific data folder
-./scripts/extract_genes.sh --folder 20251017
+./scripts/extract_Genes.sh --folder 20251017
 
 # With verbose logging
-./scripts/extract_genes.sh --verbose
+./scripts/extract_Genes.sh --verbose
 ```
 
 ## Parameters

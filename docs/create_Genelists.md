@@ -6,33 +6,33 @@ The GenesToGenelists converter scripts transform the consolidated genes.tsv file
 
 ## Available Scripts
 
-- **PowerShell**: `scripts/create_GenesToGenelists.ps1`
-- **Bash**: `scripts/create_GenesToGenelists.sh`
+- **PowerShell**: `scripts/create_Genelists.ps1`
+- **Bash**: `scripts/create_Genelists.sh`
 
 ## Usage
 
 ### PowerShell
 ```powershell
 # Create genelist files from consolidated genes data
-.\scripts\create_GenesToGenelists.ps1
+.\scripts\create_Genelists.ps1
 
 # Force regeneration even if files are up to date
-.\scripts\create_GenesToGenelists.ps1 -Force
+.\scripts\create_Genelists.ps1 -Force
 
 # With verbose logging and custom data path
-.\scripts\create_GenesToGenelists.ps1 -DataPath "data" -Verbose
+.\scripts\create_Genelists.ps1 -DataPath "data" -Verbose
 ```
 
 ### Bash
 ```bash
 # Create genelist files from consolidated genes data
-./scripts/create_GenesToGenelists.sh
+./scripts/create_Genelists.sh
 
 # Force regeneration even if files are up to date
-./scripts/create_GenesToGenelists.sh --force
+./scripts/create_Genelists.sh --force
 
 # With verbose logging and custom data path
-./scripts/create_GenesToGenelists.sh --data-path "data" --verbose
+./scripts/create_Genelists.sh --data-path "data" --verbose
 ```
 
 ## Parameters
