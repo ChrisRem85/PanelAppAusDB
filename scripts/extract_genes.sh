@@ -2,6 +2,7 @@
 # PanelApp Australia Incremental Gene Extraction Script (Bash)
 # This script extracts gene data only for panels that have been updated since last extraction
 # Tracks version_created dates and compares with previously extracted data
+# All output files use Unix newlines (LF) for cross-platform compatibility
 
 set -euo pipefail
 

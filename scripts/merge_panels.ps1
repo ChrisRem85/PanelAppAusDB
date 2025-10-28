@@ -2,6 +2,7 @@
 # This script merges all panel data into consolidated files with panel_id columns
 # It processes genes.tsv, strs.tsv, and regions.tsv files from individual panels
 # Includes validation to ensure output row count matches sum of input row counts
+# All output files use Unix newlines (LF) for cross-platform compatibility
 
 param(
     [string]$DataPath = ".\data",
@@ -293,7 +294,9 @@ function Merge-PanelFiles {
     # Write merged data to output file
     try {
         $allContent = @($header) + $mergedData
-        $allContent | Out-File -FilePath $outputFile -Encoding UTF8
+        # Write with Unix newlines
+        $fileContent = $allContent -join "`n"
+        [System.IO.File]::WriteAllText($outputFile, $fileContent, [System.Text.Encoding]::UTF8)
         
         # Validation: Count rows in output file
         $outputRowCount = Get-TSVRowCount $outputFile
@@ -312,9 +315,9 @@ function Merge-PanelFiles {
             Write-Error-Log "Found: $outputHeader"
         }
         
-        # Create version file with just timestamp
+        # Create version file with just timestamp (Unix format)
         $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffffffZ"
-        $timestamp | Out-File -FilePath $versionFile -Encoding UTF8 -NoNewline
+        [System.IO.File]::WriteAllText($versionFile, $timestamp, [System.Text.Encoding]::UTF8)
         
         # Create detailed log file with validation information
         $logInfo = @"
@@ -331,7 +334,8 @@ Expected columns: $(($expectedHeader -split "`t").Count)
 Output columns: $(($outputHeader -split "`t").Count)
 Timestamp: $timestamp
 "@
-        $logInfo | Out-File -FilePath $logFile -Encoding UTF8
+        # Write log with Unix newlines
+        [System.IO.File]::WriteAllText($logFile, $logInfo, [System.Text.Encoding]::UTF8)
         
         # Perform comprehensive validation check
         $rowValidationPassed = ($outputRowCount -eq $totalInputRows)

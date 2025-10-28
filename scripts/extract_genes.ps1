@@ -1,6 +1,7 @@
 # PanelApp Australia Incremental Gene Extraction Script (PowerShell)
 # This script extracts gene data only for panels that have been updated since last extraction
 # Tracks version_created dates and compares with previously extracted data
+# All output files use Unix newlines (LF) for cross-platform compatibility
 
 param(
     [string]$DataPath = "..\data",
@@ -106,9 +107,9 @@ function Update-PanelVersionTracking {
     $panelDir = Join-Path $DataFolder "panels\$panelId"
     New-Item -ItemType Directory -Path $panelDir -Force | Out-Null
     
-    # Update version tracking file
+    # Update version tracking file (Unix format)
     $versionFile = Join-Path $panelDir "version_created.txt"
-    $versionCreated | Out-File -FilePath $versionFile -Encoding UTF8 -NoNewline
+    [System.IO.File]::WriteAllText($versionFile, $versionCreated, [System.Text.Encoding]::UTF8)
     
     Write-Log "Updated version tracking for panel $panelId to $versionCreated"
 }
@@ -276,9 +277,10 @@ function Get-PanelGenes {
             
             $response = Invoke-RestMethod -Uri $nextUrl -Method Get -ErrorAction Stop
             
-            # Save response to file
+            # Save response to file with Unix newlines
             $responseFile = Join-Path $panelDir "genes_page_$page.json"
-            $response | ConvertTo-Json -Depth 10 | Out-File -FilePath $responseFile -Encoding UTF8
+            $jsonContent = $response | ConvertTo-Json -Depth 10
+            [System.IO.File]::WriteAllText($responseFile, $jsonContent, [System.Text.Encoding]::UTF8)
             
             $count = $response.count
             $nextUrl = $response.next
@@ -297,11 +299,11 @@ function Get-PanelGenes {
         
         Write-Success-Log "Completed gene extraction for panel $panelId ($($page-1) pages)"
         
-        # Create version_extracted.txt with current timestamp
+        # Create version_extracted.txt with current timestamp (Unix format)
         $genesDir = Join-Path $DataFolder "panels\$panelId\genes"
         $versionExtractedPath = Join-Path $genesDir "version_extracted.txt"
         $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffffffZ"
-        $timestamp | Out-File -FilePath $versionExtractedPath -Encoding UTF8
+        [System.IO.File]::WriteAllText($versionExtractedPath, $timestamp, [System.Text.Encoding]::UTF8)
         
         # Return extraction metadata
         return @{

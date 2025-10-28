@@ -68,6 +68,7 @@ DESCRIPTION:
     - Green/Amber files: ensembl_id<tab>Paus:[panel_id].[Green|Amber]
     - Simple genelist: ensembl_id only (one per line, sorted, unique)
     Files are sorted by ensembl_id, then by panel_id.
+    All files use Unix newlines (LF) for cross-platform compatibility.
 
 OPTIONS:
     -DataPath <path>    Path to data directory (default: .\data)
@@ -252,7 +253,9 @@ function New-GenelistFiles {
                 Write-Error-Log "No Green genes found - output would be empty"
                 return $false
             }
-            $greenOutput | Out-File -FilePath $greenFile -Encoding UTF8
+            # Write with Unix newlines (LF only)
+            $greenContent = $greenOutput -join "`n"
+            [System.IO.File]::WriteAllText($greenFile, $greenContent, [System.Text.Encoding]::UTF8)
             Write-Success-Log "Created Green genelist: $greenFile ($($greenGenes.Count) entries)"
         } else {
             Write-Log "Green genelist is up to date: $(Split-Path $greenFile -Leaf)"
@@ -266,7 +269,9 @@ function New-GenelistFiles {
                 Write-Error-Log "No Amber genes found - output would be empty"
                 return $false
             }
-            $amberOutput | Out-File -FilePath $amberFile -Encoding UTF8
+            # Write with Unix newlines (LF only)
+            $amberContent = $amberOutput -join "`n"
+            [System.IO.File]::WriteAllText($amberFile, $amberContent, [System.Text.Encoding]::UTF8)
             Write-Success-Log "Created Amber genelist: $amberFile ($($amberGenes.Count) entries)"
         } else {
             Write-Log "Amber genelist is up to date: $(Split-Path $amberFile -Leaf)"

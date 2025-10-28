@@ -1,6 +1,7 @@
 # PanelApp Australia Gene Processing Script (PowerShell)
 # This script processes downloaded gene JSON files and extracts specific fields to TSV format
 # Processes all panels found in the data/panels directory
+# All output files use Unix newlines (LF) for cross-platform compatibility
 
 param(
     [string]$DataPath = "..\data",
@@ -207,7 +208,9 @@ function Process-PanelGenes {
         $tsvContent = $allGenes | ConvertTo-Csv -Delimiter "`t" -NoTypeInformation
         # Remove quotation marks from CSV output
         $tsvContent = $tsvContent | ForEach-Object { $_ -replace '"', '' }
-        $tsvContent | Out-File -FilePath $outputFile -Encoding UTF8
+        # Write with Unix newlines
+        $fileContent = $tsvContent -join "`n"
+        [System.IO.File]::WriteAllText($outputFile, $fileContent, [System.Text.Encoding]::UTF8)
         
         # Validate gene count if expected count is available
         if ($ExpectedCounts.ContainsKey($PanelId)) {
@@ -225,10 +228,10 @@ function Process-PanelGenes {
             Write-Log "Gene count validation skipped for panel $PanelId (no expected count available)"
         }
         
-        # Create version_processed.txt with current timestamp
+        # Create version_processed.txt with current timestamp (Unix format)
         $versionProcessedPath = Join-Path $outputDir "version_processed.txt"
         $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ss.fffffffZ"
-        $timestamp | Out-File -FilePath $versionProcessedPath -Encoding UTF8
+        [System.IO.File]::WriteAllText($versionProcessedPath, $timestamp, [System.Text.Encoding]::UTF8)
         
         Write-Success-Log "Processed $($allGenes.Count) genes for panel $PanelId -> $outputFile"
         return $true

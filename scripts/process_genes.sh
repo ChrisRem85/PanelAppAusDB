@@ -3,6 +3,7 @@
 # PanelApp Australia Gene Processing Script (Bash)
 # This script processes downloaded gene JSON files and extracts specific fields to TSV format
 # Processes all panels found in the data/panels directory
+# All output files use Unix newlines (LF) for cross-platform compatibility
 
 set -euo pipefail
 

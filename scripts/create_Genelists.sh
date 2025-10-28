@@ -2,6 +2,7 @@
 # PanelApp Australia Gene to Genelists Converter (Bash)
 # This script converts genes.tsv to genelist format files based on confidence levels
 # Creates separate files for Green (confidence_level 3) and Amber (confidence_level 2) genes
+# All output files use Unix newlines (LF) for cross-platform compatibility
 
 set -euo pipefail
 
@@ -64,6 +65,7 @@ DESCRIPTION:
     - Green/Amber files: ensembl_id<tab>Paus:[panel_id].[Green|Amber]
     - Simple genelist: ensembl_id only (one per line, sorted, unique)
     Files are sorted by ensembl_id, then by panel_id.
+    All files use Unix newlines (LF) for cross-platform compatibility.
 
 OPTIONS:
     --data-path <path>  Path to data directory (default: ./data)

@@ -2,6 +2,7 @@
 # PanelApp Australia Panel Data Merger (Bash)
 # This script merges all panel data into consolidated files with panel_id columns
 # It processes genes.tsv, strs.tsv, and regions.tsv files from individual panels
+# All output files use Unix newlines (LF) for cross-platform compatibility
 
 set -euo pipefail
 

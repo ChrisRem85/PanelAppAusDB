@@ -3,6 +3,7 @@
 # PanelApp Australia Data Extraction Script
 # This script extracts panel data from the PanelApp Australia API
 # Creates a folder for the current date and downloads all panels with pagination
+# All output files use Unix newlines (LF) for cross-platform compatibility
 
 set -euo pipefail  # Exit on error, undefined variables, and pipe failures
 

@@ -1,6 +1,7 @@
 # PanelApp Australia Data Extraction Script (PowerShell)
 # This script extracts panel data from the PanelApp Australia API
 # Creates a folder for the current date and downloads all panels with pagination
+# All output files use Unix newlines (LF) for cross-platform compatibility
 
 param(
     [string]$OutputPath = "..\data"
@@ -134,7 +135,9 @@ function Get-PanelData {
             $response = Invoke-RestMethod -Uri $nextURL -Method Get -ErrorAction Stop
             
             # Save response to file
-            $response | ConvertTo-Json -Depth 10 | Out-File -FilePath $responseFile -Encoding UTF8
+            # Save response to file with Unix newlines
+            $jsonContent = $response | ConvertTo-Json -Depth 10
+            [System.IO.File]::WriteAllText($responseFile, $jsonContent, [System.Text.Encoding]::UTF8)
             
             $count = $response.count
             $nextURL = $response.next
@@ -171,8 +174,9 @@ function Export-PanelInfo {
     
     Write-Log "Extracting panel information from JSON files..."
     
-    # Create TSV header
-    "id`tname`tversion`tversion_created`tnumber_of_genes`tnumber_of_strs`tnumber_of_regions" | Out-File -FilePath $tsvFile -Encoding UTF8
+    # Create TSV header with Unix newlines
+    $tsvHeader = "id`tname`tversion`tversion_created`tnumber_of_genes`tnumber_of_strs`tnumber_of_regions"
+    [System.IO.File]::WriteAllText($tsvFile, $tsvHeader, [System.Text.Encoding]::UTF8)
     
     $fileCount = 0
     $panelCount = 0
@@ -202,7 +206,8 @@ function Export-PanelInfo {
                 New-Item -ItemType Directory -Path $panelDir -Force | Out-Null
                 
                 $versionFile = Join-Path $panelDir "version_created.txt"
-                $panel.version_created | Out-File -FilePath $versionFile -Encoding UTF8 -NoNewline
+                # Write version without newline (Unix format)
+                [System.IO.File]::WriteAllText($versionFile, $panel.version_created, [System.Text.Encoding]::UTF8)
                 
                 Write-Log "  Created version tracking for panel $($panel.id): $($panel.version_created)" -Level "INFO"
             }
@@ -212,10 +217,13 @@ function Export-PanelInfo {
         }
     }
     
-    # Export to TSV
-    $panels | ForEach-Object {
+    # Export to TSV with Unix newlines
+    $tsvContent = $panels | ForEach-Object {
         "$($_.id)`t$($_.name)`t$($_.version)`t$($_.version_created)`t$($_.number_of_genes)`t$($_.number_of_strs)`t$($_.number_of_regions)"
-    } | Add-Content -Path $tsvFile -Encoding UTF8
+    }
+    $existingContent = [System.IO.File]::ReadAllText($tsvFile, [System.Text.Encoding]::UTF8)
+    $fullContent = $existingContent + "`n" + ($tsvContent -join "`n")
+    [System.IO.File]::WriteAllText($tsvFile, $fullContent, [System.Text.Encoding]::UTF8)
     
     Write-Success-Log "Extracted information from $fileCount files containing $panelCount panels"
     Write-Success-Log "Summary saved to: $tsvFile"
