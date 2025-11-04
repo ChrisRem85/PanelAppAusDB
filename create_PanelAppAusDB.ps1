@@ -4,8 +4,10 @@
 # 2. Extracts detailed gene data for each panel
 # 3. Processes gene data (converts JSON to TSV format)
 # 4. Merges panel data (consolidates TSVs with panel_id column)
-# 5. Will extract STR data (placeholder for future implementation)
-# 6. Will extract region data (placeholder for future implementation)
+# 5. Creates general genelists (confidence-based, mandatory)
+# 6. Creates somatic genelists (specialized, optional)
+# 7. Will extract STR data (placeholder for future implementation)
+# 8. Will extract region data (placeholder for future implementation)
 
 param(
     [string]$OutputPath = ".\data",
@@ -13,6 +15,7 @@ param(
     [switch]$SkipGenes,
     [switch]$SkipStrs,
     [switch]$SkipRegions,
+    [switch]$CreateSomaticGenelists,
     [switch]$Force,
     [switch]$Verbose
 )
@@ -103,7 +106,7 @@ function Invoke-ExtractionScript {
             $params['Verbose'] = $true
         }
         
-        $result = & $ScriptPath @params
+        & $ScriptPath @params
         
         if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq $null) {
             Write-Success-Log "$ScriptName completed successfully"
@@ -174,6 +177,30 @@ function Main {
                 if (-not (Invoke-ExtractionScript -ScriptPath $mergeScript -ScriptName "Panel Data Merging" -Arguments $mergeArgs)) {
                     Write-Warning-Log "Panel data merging failed, but continuing with other extractions"
                     $success = $false
+                } else {
+                    # Step 2d: Create general genelists (mandatory)
+                    $genelistScript = Join-Path $ScriptDir "scripts\create_Genelists.ps1"
+                    $genelistArgs = @("-DataPath", $OutputPath)
+                    if ($Force) { $genelistArgs += "-Force" }
+                    
+                    if (-not (Invoke-ExtractionScript -ScriptPath $genelistScript -ScriptName "General Genelist Creation" -Arguments $genelistArgs)) {
+                        Write-Warning-Log "General genelist creation failed, but continuing with other extractions"
+                        $success = $false
+                    }
+                    
+                    # Step 2e: Create somatic genelists (optional)
+                    if ($CreateSomaticGenelists) {
+                        $somaticScript = Join-Path $ScriptDir "scripts\create_Somatic_genelists.ps1"
+                        $somaticArgs = @("-DataPath", $OutputPath)
+                        if ($Force) { $somaticArgs += "-Force" }
+                        
+                        if (-not (Invoke-ExtractionScript -ScriptPath $somaticScript -ScriptName "Somatic Genelist Creation" -Arguments $somaticArgs)) {
+                            Write-Warning-Log "Somatic genelist creation failed, but continuing with other extractions"
+                            $success = $false
+                        }
+                    } else {
+                        Write-Log "Skipping somatic genelist creation (use -CreateSomaticGenelists to enable)"
+                    }
                 }
             }
         }
@@ -219,6 +246,8 @@ function Main {
     Write-Log "  Gene extraction: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
     Write-Log "  Gene processing: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
     Write-Log "  Panel data merging: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
+    Write-Log "  General genelists: $(if ($SkipGenes) { 'Skipped' } else { 'Attempted' })"
+    Write-Log "  Somatic genelists: $(if ($SkipGenes -or -not $CreateSomaticGenelists) { 'Skipped' } else { 'Attempted' })"
     Write-Log "  STR data: $(if ($SkipStrs) { 'Skipped' } else { 'Attempted (future implementation)' })"
     Write-Log "  Region data: $(if ($SkipRegions) { 'Skipped' } else { 'Attempted (future implementation)' })"
 }
@@ -230,26 +259,29 @@ PanelApp Australia Complete Data Extraction Wrapper
 
 DESCRIPTION:
     This script orchestrates the complete data extraction process from PanelApp Australia API.
-    It runs panel list extraction, detailed data extraction for genes, data processing, and merging.
+    It runs panel list extraction, detailed data extraction for genes, data processing, merging,
+    and genelist creation.
 
 USAGE:
     .\create_PanelAppAusDB.ps1 [OPTIONS]
 
 OPTIONS:
-    -OutputPath PATH     Path to output directory (default: .\data)
-    -SkipGenes           Skip gene data extraction
-    -SkipStrs            Skip STR data extraction
-    -SkipRegions         Skip region data extraction
-    -Force               Force re-download all data (ignore version tracking)
-    -Verbose             Enable verbose logging
-    -Help                Show this help message
+    -OutputPath PATH             Path to output directory (default: .\data)
+    -SkipGenes                   Skip gene data extraction
+    -SkipStrs                    Skip STR data extraction
+    -SkipRegions                 Skip region data extraction
+    -CreateSomaticGenelists      Create specialized somatic genelists (optional)
+    -Force                       Force re-download all data (ignore version tracking)
+    -Verbose                     Enable verbose logging
+    -Help                        Show this help message
 
 EXAMPLES:
-    .\create_PanelAppAusDB.ps1                           # Full extraction
-    .\create_PanelAppAusDB.ps1 -SkipGenes                # Skip gene extraction
-    .\create_PanelAppAusDB.ps1 -Force                    # Force re-download all
-    .\create_PanelAppAusDB.ps1 -OutputPath "C:\MyData"   # Custom output path
-    .\create_PanelAppAusDB.ps1 -Verbose                  # Verbose logging
+    .\create_PanelAppAusDB.ps1                                    # Full extraction with general genelists
+    .\create_PanelAppAusDB.ps1 -CreateSomaticGenelists            # Include somatic genelists
+    .\create_PanelAppAusDB.ps1 -SkipGenes                         # Skip gene extraction
+    .\create_PanelAppAusDB.ps1 -Force                             # Force re-download all
+    .\create_PanelAppAusDB.ps1 -OutputPath "C:\MyData"            # Custom output path
+    .\create_PanelAppAusDB.ps1 -Verbose -CreateSomaticGenelists   # Verbose with somatic genelists
 
 "@
 }

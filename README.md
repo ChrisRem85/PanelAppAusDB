@@ -179,18 +179,23 @@ This section provides comprehensive information about all individual scripts for
    - Separate files for different confidence levels (Green/Amber) with standardized formatting
    - Available in PowerShell and Bash versions
 
+6. **[Somatic Gene to Genelists Conversion](docs/create_Somatic_genelists.md)**
+   - Create cancer/somatic-specific genelist files from consolidated data
+   - Filters for cancer predisposition, tumor, and somatic variant panels only
+   - Available in PowerShell and Bash versions
+
 #### Script Comparison Matrix
 
-| Feature | Panel List | Gene Extraction | Gene Processing | Panel Merging | Genelists |
-|---------|------------|----------------|----------------|---------------|-----------|
-| **Input** | PanelApp API | Panel List + API | JSON files | Individual TSV files | Consolidated genes.tsv |
-| **Output** | panel_list.tsv | genes/*.json | genes.tsv + tags | genes/genes.tsv + logs | Confidence-based genelists |
-| **Version Tracking** | ❌ | ✅ | ✅ | ✅ (separated files) | ✅ |
-| **Incremental Updates** | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **Cross-platform** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Validation** | ❌ | ❌ | ✅ | ✅ (comprehensive) | ✅ |
-| **Tag Extraction** | ❌ | ❌ | ✅ | ✅ (preserved) | ❌ |
-| **User Prompts** | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Feature | Panel List | Gene Extraction | Gene Processing | Panel Merging | Genelists | Somatic Genelists |
+|---------|------------|----------------|----------------|---------------|-----------|-------------------|
+| **Input** | PanelApp API | Panel List + API | JSON files | Individual TSV files | Consolidated genes.tsv | Consolidated genes.tsv |
+| **Output** | panel_list.tsv | genes/*.json | genes.tsv + tags | genes/genes.tsv + logs | Confidence-based genelists | Cancer-specific genelists |
+| **Version Tracking** | ❌ | ✅ | ✅ | ✅ (separated files) | ✅ | ✅ |
+| **Incremental Updates** | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Cross-platform** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Validation** | ❌ | ❌ | ✅ | ✅ (comprehensive) | ✅ | ✅ |
+| **Tag Extraction** | ❌ | ❌ | ✅ | ✅ (preserved) | ❌ | ❌ |
+| **User Prompts** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 #### Platform Support
 
@@ -239,7 +244,10 @@ data/
 ├── genelists/
 │   ├── genes_to_genelists.PanelAppAustralia_Green.txt  # ← High confidence genes (level 3)
 │   ├── genes_to_genelists.PanelAppAustralia_Amber.txt  # ← Moderate confidence genes (level 2)
-│   └── genelist.PanelAppAustralia.txt                  # ← All unique ensembl_ids (simple format)
+│   ├── genelist.PanelAppAustralia_GreenAmber.txt       # ← All unique ensembl_ids (simple format)
+│   ├── genes_to_genelists.PanelAppAustralia_Somatic_Green.txt  # ← Cancer/somatic high confidence
+│   ├── genes_to_genelists.PanelAppAustralia_Somatic_Amber.txt  # ← Cancer/somatic moderate confidence
+│   └── genelist.PanelAppAustralia_Somatic_GreenAmber.txt       # ← Unique cancer/somatic ensembl_ids
 └── panels/[panel_id]/
     └── genes/
         ├── json/                     # Raw API data
@@ -289,6 +297,7 @@ To modify settings, edit the configuration variables at the top of each script f
 - **[⚡ Gene Processing Scripts](docs/process_Genes.md)** - Convert JSON to TSV
 - **[🔀 Panel Merging Scripts](docs/merge_Panels.md)** - Create consolidated datasets
 - **[📝 Genelist Converter Scripts](docs/create_Genelists.md)** - Generate confidence-based genelists
+- **[🧬 Somatic Genelist Scripts](docs/create_Somatic_genelists.md)** - Generate cancer/somatic-specific genelists
 
 ### External Resources
 - **[PanelApp Australia API](https://panelapp-aus.org/api/docs/)** - Official API documentation

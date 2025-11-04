@@ -109,7 +109,7 @@ check_file_regeneration_needed() {
     local reference_time=0
     if [[ -f "$version_file" ]] && [[ -s "$version_file" ]]; then
         local version_content
-        version_content=$(cat "$version_file" | tr -d '\n\r' | xargs)
+        version_content=$(cat "$version_file" | xargs)
         if [[ -n "$version_content" ]]; then
             # Try to parse timestamp (assuming ISO format or similar)
             reference_time=$(date -d "$version_content" +%s 2>/dev/null || echo 0)
@@ -155,7 +155,7 @@ check_regeneration_needed() {
     local reference_time
     if [[ -f "$version_file" ]] && [[ -s "$version_file" ]]; then
         local version_content
-        version_content=$(cat "$version_file" | tr -d '\n\r' | xargs)
+        version_content=$(cat "$version_file" | xargs)
         if [[ -n "$version_content" ]]; then
             # Try to parse timestamp (assuming ISO format or similar)
             reference_time=$(date -d "$version_content" +%s 2>/dev/null || echo 0)
@@ -211,7 +211,7 @@ create_genelist_files() {
     
     # Get column positions (assuming tab-separated with header)
     local header
-    header=$(head -n1 "$genes_file" | tr -d '\r')
+    header=$(head -n1 "$genes_file")
     
     # Define column positions based on known structure
     # From earlier debug: 1=panel_id, 2=hgnc_symbol, 3=ensembl_id, 4=confidence_level
@@ -331,7 +331,7 @@ create_genelist_files() {
                 rm "$temp_file" "${temp_file}.sorted" 2>/dev/null || true
                 return 1
             fi
-            head -c -1 "${temp_file}.sorted" > "$simple_file"
+            cp "${temp_file}.sorted" "$simple_file"
             rm "$temp_file" "${temp_file}.sorted"
         else
             log_message "No ensembl_ids found for simple genelist - output would be empty" "ERROR"

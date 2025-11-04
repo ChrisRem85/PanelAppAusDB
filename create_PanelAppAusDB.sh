@@ -19,6 +19,7 @@ SKIP_STRS=0
 SKIP_REGIONS=0
 FORCE=0
 VERBOSE=0
+CREATE_SOMATIC_GENELISTS=0
 
 # Colors for output
 RED='\033[0;31m'
@@ -69,10 +70,12 @@ OPTIONS:
     --skip-regions       Skip region data extraction
     --force              Force re-download all data (ignore version tracking)
     --verbose            Enable verbose logging
+    --create-somatic-genelists  Generate somatic genelists in addition to standard genelists (optional)
     --help              Show this help message
 
 EXAMPLES:
-    $0                                    # Full extraction
+    $0                                    # Full extraction with general genelists
+    $0 --create-somatic-genelists         # Full extraction with both general and somatic genelists
     $0 --panel-id 6                      # Extract only panel 6
     $0 --skip-genes                       # Skip gene extraction
     $0 --force                            # Force re-download all
@@ -112,6 +115,10 @@ parse_args() {
                 ;;
             --verbose)
                 VERBOSE=1
+                shift
+                ;;
+            --create-somatic-genelists)
+                CREATE_SOMATIC_GENELISTS=1
                 shift
                 ;;
             --help|-h)
@@ -226,6 +233,34 @@ main() {
                 if ! run_script "$merge_script" "Panel Data Merging" false "${merge_args[@]}"; then
                     log_message "Panel data merging failed, but continuing with other extractions" "WARNING"
                     success=false
+                else
+                    # Step 2d: Create general genelists (mandatory)
+                    local genelist_script="$SCRIPT_DIR/scripts/create_Genelists.sh"
+                    local genelist_args=("--data-path" "$OUTPUT_PATH")
+                    if [[ $VERBOSE -eq 1 ]]; then
+                        genelist_args+=("--verbose")
+                    fi
+                    
+                    if ! run_script "$genelist_script" "General Genelist Creation" false "${genelist_args[@]}"; then
+                        log_message "General genelist creation failed, but continuing with other extractions" "WARNING"
+                        success=false
+                    fi
+                    
+                    # Step 2e: Create somatic genelists (optional)
+                    if [[ $CREATE_SOMATIC_GENELISTS -eq 1 ]]; then
+                        local somatic_script="$SCRIPT_DIR/scripts/create_Somatic_genelists.sh"
+                        local somatic_args=("--data-path" "$OUTPUT_PATH")
+                        if [[ $VERBOSE -eq 1 ]]; then
+                            somatic_args+=("--verbose")
+                        fi
+                        
+                        if ! run_script "$somatic_script" "Somatic Genelist Creation" false "${somatic_args[@]}"; then
+                            log_message "Somatic genelist creation failed, but continuing with other extractions" "WARNING"
+                            success=false
+                        fi
+                    else
+                        log_message "Skipping somatic genelist creation (--create-somatic-genelists not specified)"
+                    fi
                 fi
             fi
         else
@@ -274,6 +309,8 @@ main() {
     log_message "  Gene data: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted'; fi)"
     log_message "  Gene processing: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted'; fi)"
     log_message "  Panel data merging: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted'; fi)"
+    log_message "  General genelists: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted'; fi)"
+    log_message "  Somatic genelists: $(if [[ $SKIP_GENES -eq 1 ]]; then echo 'Skipped'; elif [[ $CREATE_SOMATIC_GENELISTS -eq 1 ]]; then echo 'Attempted'; else echo 'Skipped'; fi)"
     log_message "  STR data: $(if [[ $SKIP_STRS -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted (future implementation)'; fi)"
     log_message "  Region data: $(if [[ $SKIP_REGIONS -eq 1 ]]; then echo 'Skipped'; else echo 'Attempted (future implementation)'; fi)"
 }

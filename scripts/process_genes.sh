@@ -161,7 +161,7 @@ test_panel_needs_processing() {
     
     # Get processed date
     local processed_date_str
-    if ! processed_date_str=$(cat "$version_processed_path" 2>/dev/null | tr -d '\n\r'); then
+    if ! processed_date_str=$(cat "$version_processed_path" 2>/dev/null | xargs); then
         log_message "Panel $panel_id needs processing: Cannot read processed date" "WARNING"
         return 0
     fi
@@ -169,7 +169,7 @@ test_panel_needs_processing() {
     # Check against version_created.txt
     if [[ -f "$version_created_path" ]]; then
         local created_date_str
-        if created_date_str=$(cat "$version_created_path" 2>/dev/null | tr -d '\n\r'); then
+        if created_date_str=$(cat "$version_created_path" 2>/dev/null | xargs); then
             if [[ "$processed_date_str" < "$created_date_str" ]]; then
                 log_message "Panel $panel_id needs processing: processed date ($processed_date_str) is older than created date ($created_date_str)" "INFO"
                 return 0
@@ -183,7 +183,7 @@ test_panel_needs_processing() {
     # Check against version_extracted.txt
     if [[ -f "$version_extracted_path" ]]; then
         local extracted_date_str
-        if extracted_date_str=$(cat "$version_extracted_path" 2>/dev/null | tr -d '\n\r'); then
+        if extracted_date_str=$(cat "$version_extracted_path" 2>/dev/null | xargs); then
             if [[ "$processed_date_str" < "$extracted_date_str" ]]; then
                 log_message "Panel $panel_id needs processing: processed date ($processed_date_str) is older than extracted date ($extracted_date_str)" "INFO"
                 return 0
