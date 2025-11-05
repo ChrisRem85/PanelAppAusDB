@@ -328,7 +328,10 @@ main() {
     local skipped=0
     
     # Process each panel
-    while IFS=':' read -r panel_id panel_path; do
+    while read -r panel_path; do
+        # Extract panel ID from path
+        local panel_id=$(basename "$panel_path")
+        
         # Check if panel needs processing
         if ! test_panel_needs_processing "$panel_id" "$panel_path"; then
             skipped=$((skipped + 1))

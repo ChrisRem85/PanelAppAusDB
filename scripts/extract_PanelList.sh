@@ -300,7 +300,7 @@ extract_panel_info() {
                     mkdir -p "$panel_dir"
                     
                     local version_file="$panel_dir/version_created.txt"
-                    echo -n "$version_created" > "$version_file"
+                    echo "$version_created" > "$version_file"
                 fi
             done < "$output_dir/panels/temp_versions_$file_count.txt"
             

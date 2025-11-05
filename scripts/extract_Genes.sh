@@ -164,7 +164,7 @@ update_panel_version_tracking() {
     
     # Update version tracking file
     local version_file="$panel_dir/version_created.txt"
-    echo -n "$version_created" > "$version_file"
+    echo "$version_created" > "$version_file"
     
     log_message "Updated version tracking for panel $panel_id to $version_created"
 }
