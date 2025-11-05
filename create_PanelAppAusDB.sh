@@ -12,7 +12,7 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUTPUT_PATH="./data"
+DATA_PATH="./data"
 PANEL_ID=""
 SKIP_GENES=0
 SKIP_STRS=0
@@ -59,7 +59,7 @@ USAGE:
     $0 [OPTIONS]
 
 OPTIONS:
-    --output-path PATH    Path to output directory (default: ./data)
+    --data-path PATH      Path to data directory (default: ./data)
     --panel-id ID         Extract data for specific panel ID only
     --skip-genes         Skip gene data extraction
     --skip-strs          Skip STR data extraction
@@ -79,7 +79,7 @@ EXAMPLES:
     $0 --panel-id 6                      # Extract only panel 6
     $0 --skip-genes                       # Skip gene extraction
     $0 --force                            # Force re-download all
-    $0 --output-path /path/to/data        # Custom output path
+    $0 --data-path /path/to/data        # Custom output path
     $0 --verbose                          # Verbose logging
     $0 --retries 5                       # Use 5 retry attempts for API calls
 
@@ -90,8 +90,8 @@ EOF
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --output-path)
-                OUTPUT_PATH="$2"
+            --data-path)
+                DATA_PATH="$2"
                 shift 2
                 ;;
             --panel-id)
@@ -182,7 +182,7 @@ main() {
     
     # Step 1: Extract panel list data
     local panel_list_script="$SCRIPT_DIR/scripts/extract_PanelList.sh"
-    local panel_list_args=("--output-path" "$OUTPUT_PATH")
+    local panel_list_args=("--data-path" "$DATA_PATH")
     
     if [[ -n "$RETRY_ATTEMPTS" ]]; then
         panel_list_args+=("--retries" "$RETRY_ATTEMPTS")
@@ -194,7 +194,7 @@ main() {
     fi
     
     # Set data folder path directly
-    local data_folder="$OUTPUT_PATH"
+    local data_folder="$DATA_PATH"
     
     if [[ ! -d "$data_folder" ]]; then
         log_message "Data folder not found: $data_folder" "ERROR"
@@ -206,7 +206,7 @@ main() {
     # Step 2: Extract gene data (if not skipped)
     if [[ $SKIP_GENES -eq 0 ]]; then
         local gene_script="$SCRIPT_DIR/scripts/extract_Genes.sh"
-        local gene_args=("--data-path" "$OUTPUT_PATH")
+        local gene_args=("--data-path" "$DATA_PATH")
         if [[ $FORCE -eq 1 ]]; then
             gene_args+=("--force")
         fi
@@ -227,7 +227,7 @@ main() {
         
         # Step 2b: Process gene data (convert JSON to TSV) - attempt regardless of extraction result
         local process_script="$SCRIPT_DIR/scripts/process_Genes.sh"
-        local process_args=("--data-path" "$OUTPUT_PATH")
+        local process_args=("--data-path" "$DATA_PATH")
         if [[ $FORCE -eq 1 ]]; then
             process_args+=("--force")
         fi
@@ -242,7 +242,7 @@ main() {
         
         # Step 2c: Merge panel data (consolidate TSVs with panel_id column) - attempt regardless
         local merge_script="$SCRIPT_DIR/scripts/merge_Panels.sh"
-        local merge_args=("--data-path" "$OUTPUT_PATH")
+        local merge_args=("--data-path" "$DATA_PATH")
         if [[ $FORCE -eq 1 ]]; then
             merge_args+=("--force")
         fi
@@ -256,10 +256,10 @@ main() {
         fi
         
         # Step 2d: Create general genelists (mandatory) - attempt if genes.tsv exists
-        local genes_file="$OUTPUT_PATH/genes/genes.tsv"
+        local genes_file="$DATA_PATH/genes/genes.tsv"
         if [[ -f "$genes_file" ]]; then
             local genelist_script="$SCRIPT_DIR/scripts/create_Genelists.sh"
-            local genelist_args=("--data-path" "$OUTPUT_PATH")
+            local genelist_args=("--data-path" "$DATA_PATH")
             if [[ $VERBOSE -eq 1 ]]; then
                 genelist_args+=("--verbose")
             fi
@@ -275,10 +275,10 @@ main() {
         
         # Step 2e: Create somatic genelists (optional)
         if [[ $CREATE_SOMATIC_GENELISTS -eq 1 ]]; then
-            local genes_file="$OUTPUT_PATH/genes/genes.tsv"
+            local genes_file="$DATA_PATH/genes/genes.tsv"
             if [[ -f "$genes_file" ]]; then
                 local somatic_script="$SCRIPT_DIR/scripts/create_Somatic_genelists.sh"
-                local somatic_args=("--data-path" "$OUTPUT_PATH")
+                local somatic_args=("--data-path" "$DATA_PATH")
                 if [[ $VERBOSE -eq 1 ]]; then
                     somatic_args+=("--verbose")
                 fi
@@ -300,7 +300,7 @@ main() {
     # Step 3: Extract STR data (placeholder - future implementation)
     if [[ $SKIP_STRS -eq 0 ]]; then
         local str_script="$SCRIPT_DIR/scripts/extract_strs.sh"
-        local str_args=("--data-path" "$OUTPUT_PATH")
+        local str_args=("--data-path" "$DATA_PATH")
         
         if [[ -n "$RETRY_ATTEMPTS" ]]; then
             str_args+=("--retries" "$RETRY_ATTEMPTS")
@@ -316,7 +316,7 @@ main() {
     # Step 4: Extract region data (placeholder - future implementation)
     if [[ $SKIP_REGIONS -eq 0 ]]; then
         local region_script="$SCRIPT_DIR/scripts/extract_regions.sh"
-        local region_args=("--data-path" "$OUTPUT_PATH")
+        local region_args=("--data-path" "$DATA_PATH")
         
         if [[ -n "$RETRY_ATTEMPTS" ]]; then
             region_args+=("--retries" "$RETRY_ATTEMPTS")

@@ -16,8 +16,8 @@ EXPECTED_API_VERSION="v1"
 # Retry configuration
 RETRY_ATTEMPTS=3           # Number of retry attempts for failed downloads
 
-# Output path configuration
-OUTPUT_PATH=""             # Custom output path (optional)
+# Data path configuration
+DATA_PATH="./data"         # Default data path
 
 # Logging function
 log() {
@@ -138,10 +138,10 @@ check_dependencies() {
 
 # Create output folder structure
 create_output_folder() {
-    # Check if custom output path is provided
-    if [[ -n "$OUTPUT_PATH" ]]; then
-        local base_dir="$OUTPUT_PATH"
-        log "Using custom output folder: $base_dir" >&2
+    # Check if custom data path is provided
+    if [[ -n "$DATA_PATH" ]]; then
+        local base_dir="$DATA_PATH"
+        log "Using custom data folder: $base_dir" >&2
     else
         # Get the directory where this script is located
         local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -337,14 +337,14 @@ Usage: $0 [OPTIONS]
 Extract panel list data from PanelApp Australia API.
 
 OPTIONS:
-    --output-path PATH  Custom output path for data (default: auto-detected)
+    --data-path PATH    Path to data directory (default: ./data)
     --retries N         Number of retry attempts for failed downloads (default: 3)
     --help, -h          Show this help message
 
 EXAMPLES:
     $0                                  # Use default settings
     $0 --retries 5                      # Use 5 retry attempts
-    $0 --output-path /custom/path       # Use custom output path
+    $0 --data-path /custom/path         # Use custom data path
 
 EOF
 }
@@ -353,8 +353,8 @@ EOF
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --output-path)
-                OUTPUT_PATH="$2"
+            --data-path)
+                DATA_PATH="$2"
                 shift 2
                 ;;
             --retries)

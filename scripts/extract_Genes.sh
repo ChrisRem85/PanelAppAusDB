@@ -9,7 +9,7 @@ set -euo pipefail  # Exit on error, undefined variables, and pipe failures
 # Configuration
 BASE_URL="https://panelapp-aus.org/api"
 API_VERSION="v1"
-DATA_PATH="../data"
+DATA_PATH="./data"
 FOLDER=""
 PANEL_ID=""
 VERBOSE=0
@@ -99,7 +99,7 @@ Extract gene data incrementally from PanelApp Australia API.
 Only downloads panels that have been updated since last extraction.
 
 OPTIONS:
-    --data-path PATH    Path to data directory (default: ../data)
+    --data-path PATH    Path to data directory (default: ./data)
     --panel-id ID       Extract genes for specific panel ID only
     --force             Force re-download all panels
     --verbose           Enable verbose logging

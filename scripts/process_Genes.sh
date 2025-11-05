@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # Default values
-DATA_PATH="../data"
+DATA_PATH="./data"
 PANEL_ID=""
 VERBOSE=false
 FORCE=false
@@ -47,7 +47,7 @@ usage() {
     echo "    $0 [OPTIONS]"
     echo ""
     echo "OPTIONS:"
-    echo "    --data-path PATH    Path to data directory (default: ../data)"
+    echo "    --data-path PATH    Path to data directory (default: ./data)"
     echo "    --panel-id ID       Process only the specified panel ID (default: process all panels)"
     echo "    --verbose           Enable verbose logging"
     echo "    --force             Force processing even if files are up to date"
