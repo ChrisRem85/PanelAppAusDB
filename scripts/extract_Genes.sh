@@ -1,486 +1,176 @@
 #!/bin/bash
-# PanelApp Australia Incremental Gene Extraction Script (Bash)
-# This script extracts gene data only for panels that have been updated since last extraction
-# Tracks version_created dates and compares with previously extracted data
-# All output files use Unix newlines (LF) for cross-platform compatibility
+# PanelApp Australia Gene Extraction Script - Simplified Version
+# Downloads gene data from panels that need updating
 
-set -euo pipefail  # Exit on error, undefined variables, and pipe failures
+set -euo pipefail
 
 # Configuration
-BASE_URL="https://panelapp-aus.org/api"
-API_VERSION="v1"
+BASE_URL="https://panelapp-aus.org/api/v1"
 DATA_PATH="./data"
-FOLDER=""
 PANEL_ID=""
 VERBOSE=0
 FORCE=0
+RETRY_ATTEMPTS=3
 
-# Retry configuration
-RETRY_ATTEMPTS=3           # Number of retry attempts for failed downloads
-
-# Logging functions
-log_message() {
-    local message="$1"
-    local level="${2:-INFO}"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    
-    case "$level" in
-        "ERROR")
-            echo "[$timestamp] $message" >&2
-            ;;
-        "SUCCESS")
-            echo "[$timestamp] $message"
-            ;;
-        "WARNING")
-            echo "[$timestamp] $message"
-            ;;
-        *)
-            echo "[$timestamp] $message"
-            ;;
-    esac
+# Simple logging
+log() {
+    [[ $VERBOSE -eq 1 ]] && echo "[$(date '+%H:%M:%S')] $1" >&2
 }
 
-# Clear JSON directory to prevent inconsistencies from old files
-clear_json_directory() {
-    local json_path="$1"
-    
-    if [ -d "$json_path" ]; then
-        log_message "Clearing existing JSON files from: $json_path" "INFO"
-        local json_files=($(find "$json_path" -name "*.json" 2>/dev/null))
-        if [ ${#json_files[@]} -gt 0 ]; then
-            rm -f "$json_path"/*.json 2>/dev/null || true
-            log_message "Removed ${#json_files[@]} existing JSON files" "SUCCESS"
-        else
-            log_message "No existing JSON files found to clear" "INFO"
-        fi
-    else
-        log_message "JSON directory does not exist yet: $json_path" "INFO"
-    fi
+error() {
+    echo "[ERROR] $1" >&2
+    exit 1
 }
 
-# Retry mechanism for API requests
-retry_with_backoff() {
-    local max_attempts="$1"
-    shift 1
-    local command=("$@")
-    
-    local attempt=1
-    local delay=5
-    
-    while [[ $attempt -le $max_attempts ]]; do
-        if [[ $VERBOSE -eq 1 ]]; then
-            log_message "Attempt $attempt/$max_attempts: ${command[*]}" "INFO"
-        fi
-        
-        if "${command[@]}"; then
-            return 0
-        fi
-        
-        if [[ $attempt -eq $max_attempts ]]; then
-            log_message "All $max_attempts attempts failed" "ERROR"
-            return 1
-        fi
-        
-        log_message "Attempt $attempt failed, retrying in ${delay}s..." "WARNING"
-        sleep "$delay"
-        
-        # Exponential backoff
-        delay=$((delay * 2))
-        ((attempt++))
-    done
-}
-
-# Show usage information
-show_usage() {
+# Usage
+usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
-
-Extract gene data incrementally from PanelApp Australia API.
-Only downloads panels that have been updated since last extraction.
-
-OPTIONS:
-    --data-path PATH    Path to data directory (default: ./data)
-    --panel-id ID       Extract genes for specific panel ID only
-    --force             Force re-download all panels
-    --verbose           Enable verbose logging
-    --retries N         Number of retry attempts for failed downloads (default: 3)
-    --help             Show this help message
-
-EXAMPLES:
-    $0                                    # Use data path directly
-    $0 --force                            # Force re-download all
-    $0 --data-path /path/to/data --verbose # Custom path with verbose output
-    $0 --retries 5                 # Use 5 retry attempts
+  --data-path PATH    Data directory (default: ./data)
+  --panel-id ID       Specific panel ID only
+  --force             Force re-download
+  --verbose           Verbose output
+  --retries N         Retry attempts (default: 3)
+  --help              This help
 EOF
 }
 
-# Parse command line arguments
-parse_args() {
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --data-path)
-                DATA_PATH="$2"
-                shift 2
-                ;;
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --data-path) DATA_PATH="$2"; shift 2 ;;
+        --panel-id) PANEL_ID="$2"; shift 2 ;;
+        --force) FORCE=1; shift ;;
+        --verbose) VERBOSE=1; shift ;;
+        --retries) RETRY_ATTEMPTS="$2"; shift 2 ;;
+        --help|-h) usage; exit 0 ;;
+        *) error "Unknown option: $1" ;;
+    esac
+done
 
-            --panel-id)
-                PANEL_ID="$2"
-                shift 2
-                ;;
-            --force)
-                FORCE=1
-                shift
-                ;;
-            --verbose)
-                VERBOSE=1
-                shift
-                ;;
-            --retries)
-                RETRY_ATTEMPTS="$2"
-                shift 2
-                ;;
-            --help|-h)
-                show_usage
-                exit 0
-                ;;
-            *)
-                log_message "Unknown option: $1" "ERROR"
-                show_usage
-                exit 1
-                ;;
-        esac
+# Retry with backoff
+retry() {
+    local cmd=("$@")
+    for i in $(seq 1 $RETRY_ATTEMPTS); do
+        if "${cmd[@]}"; then return 0; fi
+        [[ $i -eq $RETRY_ATTEMPTS ]] && return 1
+        log "Retry $i failed, waiting..."
+        sleep $((i * 2))
     done
 }
 
-# Update version tracking file for successfully downloaded panel
-update_panel_version_tracking() {
-    local data_folder="$1"
-    local panel_id="$2"
-    local version_created="$3"
-    
-    # Ensure panel directory exists
-    local panel_dir="$data_folder/panels/$panel_id"
-    mkdir -p "$panel_dir"
-    
-    # Update version tracking file
-    local version_file="$panel_dir/version_created.txt"
-    echo "$version_created" > "$version_file"
-    
-    log_message "Updated version tracking for panel $panel_id to $version_created"
-}
-
-# Check if panel needs to be updated based on version file in panel directory
-panel_needs_update() {
+# Check if panel needs update
+needs_update() {
     local panel_id="$1"
-    local current_version_created="$2"
-    local data_folder="$3"
-    local force="$4"
+    local current_version="$2"
+    local panel_dir="$DATA_PATH/panels/$panel_id"
     
-    log_message "Checking panel $panel_id for updates (force=$force)"
+    [[ $FORCE -eq 1 ]] && return 0
+    [[ ! -d "$panel_dir/genes/json" ]] && return 0
+    [[ ! -f "$panel_dir/genes/version_extracted.txt" ]] && return 0
+    [[ ! -f "$panel_dir/version_created.txt" ]] && return 0
     
-    if [[ "$force" == "1" ]]; then
-        return 0
-    fi
+    local last_version=$(cat "$panel_dir/version_created.txt" 2>/dev/null || echo "")
+    [[ "$current_version" > "$last_version" ]] && return 0
     
-    # Check for JSON folder existence
-    local json_folder="$data_folder/panels/$panel_id/genes/json"
-    if [[ ! -d "$json_folder" ]]; then
-        log_message "Panel $panel_id has no JSON folder, will download"
-        return 0
-    fi
-    
-    # Check for JSON files in the folder
-    local json_file_count
-    json_file_count=$(find "$json_folder" -name "*.json" -type f 2>/dev/null | wc -l || echo "0")
-    if [[ "$json_file_count" -eq 0 ]]; then
-        log_message "Panel $panel_id has no JSON files in folder, will download"
-        return 0
-    fi
-    
-    # Check for version_extracted.txt file
-    local version_extracted_file="$data_folder/panels/$panel_id/genes/version_extracted.txt"
-    if [[ ! -f "$version_extracted_file" ]]; then
-        log_message "Panel $panel_id has no extraction tracking file, will download"
-        return 0
-    fi
-    
-    # Check for version_created.txt file
-    local version_created_file="$data_folder/panels/$panel_id/version_created.txt"
-    if [[ ! -f "$version_created_file" ]]; then
-        log_message "Panel $panel_id has no version tracking file, will download"
-        return 0
-    fi
-    
-    # Read extraction date
-    local extracted_date
-    extracted_date=$(cat "$version_extracted_file" 2>/dev/null | tr -d '[:space:]' 2>/dev/null || echo "")
-    
-    if [[ -z "$extracted_date" ]]; then
-        log_message "Panel $panel_id has empty extraction tracking file, will download"
-        return 0
-    fi
-    
-    # Read version created date
-    local last_version_created
-    last_version_created=$(cat "$version_created_file" 2>/dev/null | tr -d '[:space:]' 2>/dev/null || echo "")
-    
-    if [[ -z "$last_version_created" ]]; then
-        log_message "Panel $panel_id has empty version file, will download"
-        return 0
-    fi
-    
-    # Check if panel version has been updated since last extraction
-    if [[ "$current_version_created" > "$last_version_created" ]]; then
-        log_message "Panel $panel_id has been updated ($last_version_created -> $current_version_created)"
-        return 0
-    fi
-    
-    # Check if extraction is older than the version created date
-    if [[ "$extracted_date" < "$last_version_created" ]]; then
-        log_message "Panel $panel_id extraction is older than version created date, will download"
-        return 0
-    fi
-    
-    log_message "Panel $panel_id is up to date ($current_version_created)"
+    log "Panel $panel_id up to date"
     return 1
 }
 
-# Download genes for a specific panel
-download_panel_genes() {
-    local data_folder="$1"
-    local panel_id="$2"
-    local panel_name="$3"
-    local version_created="$4"
+# Download panel genes
+download_genes() {
+    local panel_id="$1"
+    local panel_name="$2"
+    local version="$3"
+    local panel_dir="$DATA_PATH/panels/$panel_id"
+    local json_dir="$panel_dir/genes/json"
     
-    log_message "Extracting genes for panel $panel_id ($panel_name)..."
+    log "Downloading genes for panel $panel_id"
     
-    # Create panel-specific directory structure
-    local panel_dir="$data_folder/panels/$panel_id/genes/json"
-    mkdir -p "$panel_dir"
+    # Create directories
+    mkdir -p "$json_dir"
+    rm -f "$json_dir"/*.json 2>/dev/null || true
     
-    # Clear any existing JSON files to prevent inconsistencies
-    clear_json_directory "$panel_dir"
-    
-    # Download genes with pagination
-    local gene_url="$BASE_URL/$API_VERSION/panels/$panel_id/genes/"
+    # Download pages
     local page=1
-    local next_url="$gene_url"
-    
-    while [[ -n "$next_url" && "$next_url" != "null" ]]; do
-        log_message "  Downloading genes page $page for panel $panel_id..."
+    while true; do
+        local url="$BASE_URL/panels/$panel_id/genes/?page=$page"
+        local output="$json_dir/genes_page_$page.json"
         
-        local response_file="$panel_dir/genes_page_$page.json"
-        
-        # Use retry mechanism for the curl request
-        if ! retry_with_backoff "$RETRY_ATTEMPTS" curl -s -f "$next_url" -o "$response_file"; then
-            log_message "Error downloading genes for panel $panel_id after $RETRY_ATTEMPTS attempts" "ERROR"
-            return 1
+        if ! retry curl -s -f "$url" -o "$output"; then
+            error "Failed to download page $page for panel $panel_id"
         fi
         
-        # Parse response for pagination info
-        if command -v jq >/dev/null 2>&1; then
-            local count
-            local results_count
-            count=$(jq -r '.count // 0' "$response_file")
-            results_count=$(jq -r '.results | length' "$response_file")
-            next_url=$(jq -r '.next // empty' "$response_file")
-            
-            log_message "    Page $page downloaded: $results_count genes (Total: $count)"
-        else
-            log_message "    Page $page downloaded (jq not available for detailed info)"
-            # Simple check for next page without jq
-            if grep -q '"next":' "$response_file"; then
-                next_url="continue"  # Will be handled in next iteration
-            else
-                next_url=""
-            fi
-        fi
-        
+        # Check if more pages exist
+        local next_page=$(jq -r '.next // empty' "$output" 2>/dev/null || true)
+        [[ -z "$next_page" ]] && break
         ((page++))
-        
-        # Safety check
-        if [[ $page -gt 100 ]]; then
-            log_message "Safety limit reached (100 pages) for panel $panel_id" "WARNING"
-            break
-        fi
     done
     
-    log_message "Completed gene extraction for panel $panel_id ($((page-1)) pages)" "SUCCESS"
+    # Update version tracking
+    echo "$version" > "$panel_dir/version_created.txt"
+    date -Iseconds > "$panel_dir/genes/version_extracted.txt"
     
-    # Create version_extracted.txt with current timestamp
-    local genes_dir="$data_folder/panels/$panel_id/genes"
-    local version_extracted_path="$genes_dir/version_extracted.txt"
-    date -u '+%Y-%m-%dT%H:%M:%S.%6NZ' > "$version_extracted_path"
-    
-    # Return extraction metadata as JSON
-    local extraction_date
-    extraction_date=$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')
-    
-    cat << EOF
-{
-  "success": true,
-  "panel_id": "$panel_id",
-  "version_created": "$version_created",
-  "extraction_date": "$extraction_date",
-  "pages_downloaded": $((page-1))
-}
-EOF
-    return 0
+    log "Downloaded $page pages for panel $panel_id"
 }
 
-
-
-# Main execution function
+# Main execution
 main() {
-    log_message "Starting PanelApp Australia incremental gene extraction..."
+    local tsv_file="$DATA_PATH/panel_list/panel_list.tsv"
+    [[ ! -f "$tsv_file" ]] && error "Panel list not found: $tsv_file"
     
-    # Display configuration
-    log_message "Configuration:"
-    log_message "  Retry attempts: $RETRY_ATTEMPTS"
-    if [[ -n "$PANEL_ID" ]]; then
-        log_message "  Filtering for panel ID: $PANEL_ID"
-    fi
-    if [[ $FORCE -eq 1 ]]; then
-        log_message "  Force mode: Enabled (will re-download all panels)"
-    fi
-    
-    # Determine data folder
-    local data_folder
-    # Use data path directly (no date subfolders)
-    data_folder="$DATA_PATH"
-    if [[ ! -d "$data_folder" ]]; then
-        log_message "Data path does not exist: $data_folder" "ERROR"
-        exit 1
-    fi
-    log_message "Using data folder: $data_folder"
-    
-    # Check for required files
-    local tsv_file="$data_folder/panel_list/panel_list.tsv"
-    if [[ ! -f "$tsv_file" ]]; then
-        log_message "Panel list file not found: $tsv_file" "ERROR"
-        exit 1
-    fi
-    
-    log_message "Found TSV file: $tsv_file"
-    
-    # Display filtering information if panel ID is specified
-    if [[ -n "$PANEL_ID" ]]; then
-        log_message "Filtering for specific panel ID: $PANEL_ID" "INFO"
-    fi
-    
-    # Read panel data and filter panels that need updating
     local panels_to_update=()
-    local total_panels=0
+    local total=0
     
-    log_message "Starting to read TSV file..."
+    # Process specific panel or all panels
+    if [[ -n "$PANEL_ID" ]]; then
+        # Single panel mode
+        local panel_data=$(grep "^$PANEL_ID[[:space:]]" "$tsv_file" || true)
+        [[ -z "$panel_data" ]] && error "Panel $PANEL_ID not found"
+        
+        IFS=$'\t' read -r id name version created <<< "$panel_data"
+        if needs_update "$id" "$created"; then
+            download_genes "$id" "$name" "$created"
+            echo "✓ Panel $id processed"
+        else
+            echo "Panel $id up to date"
+        fi
+        return
+    fi
     
-    while IFS=$'\t' read -r id name version version_created number_of_genes number_of_strs number_of_regions; do
-        log_message "Read line: id='$id', name='$name'"
+    # All panels mode - collect panels needing updates
+    while IFS=$'\t' read -r id name version created || [[ -n "$id" ]]; do
+        [[ "$id" == "id" ]] && continue  # Skip header
+        [[ ! "$id" =~ ^[0-9]+$ ]] && continue  # Numeric IDs only
         
-        # Skip header line
-        if [[ "$id" == "id" ]]; then
-            log_message "Skipping header line"
-            continue
+        ((total++))
+        if needs_update "$id" "$created"; then
+            panels_to_update+=("$id|$name|$created")
         fi
-        
-        log_message "Processing non-header line: $id"
-        
-        # Filter for specific panel ID if provided
-        if [[ -n "$PANEL_ID" && "$id" != "$PANEL_ID" ]]; then
-            log_message "Filtered out panel $id"
-            continue
-        fi
-        
-        log_message "Panel $id passed filter"
-        
-        # Validate panel ID
-        if [[ -z "$id" || ! "$id" =~ ^[0-9]+$ ]]; then
-            log_message "Invalid panel ID: '$id'"
-            [[ -n "$id" ]] && log_message "Invalid panel ID: $id" "WARNING"
-            continue
-        fi
-        
-        log_message "Panel $id is valid"
-        
-        total_panels=$((total_panels + 1))
-        log_message "Incremented total_panels to $total_panels"
-        
-        # Add debug for first panel
-        if [[ $total_panels -eq 1 ]]; then
-            log_message "Processing first panel: $id"
-        fi
-        
-        # Check if panel needs updating
-        if panel_needs_update "$id" "$version_created" "$data_folder" "$FORCE"; then
-            panels_to_update+=("$id|$name|$version|$version_created")
-        fi
-        
     done < "$tsv_file"
     
-    log_message "Finished reading TSV, total_panels: $total_panels, panels_to_update: ${#panels_to_update[@]}"
+    echo "Found ${#panels_to_update[@]} panels to update (of $total total)"
     
-    if [[ ${#panels_to_update[@]} -eq 0 ]]; then
-        log_message "All panels are up to date. No downloads needed." "SUCCESS"
-        exit 0
-    fi
-    
-    log_message "Will download genes for ${#panels_to_update[@]} panels (out of $total_panels total)"
-    log_message "Processing with $RETRY_ATTEMPTS retry attempts each"
-    
-    # Download genes for panels that need updating
-    local successful=0
-    local failed=0
-    
+    # Download updates
+    local count=0
     for panel_data in "${panels_to_update[@]}"; do
-        IFS='|' read -r panel_id panel_name panel_version version_created <<< "$panel_data"
+        IFS='|' read -r id name created <<< "$panel_data"
+        ((count++))
+        echo "[$count/${#panels_to_update[@]}] Processing panel $id"
         
-        log_message "[$((successful + failed + 1))/${#panels_to_update[@]}] Processing panel $panel_id ($panel_name)"
-        
-        # Download genes and check if files were created successfully
-        download_panel_genes "$data_folder" "$panel_id" "$panel_name" "$version_created" >/dev/null 2>&1
-        
-        # Verify download succeeded by checking if JSON files exist
-        local json_dir="$data_folder/panels/$panel_id/genes/json"
-        local json_count=$(find "$json_dir" -name "*.json" 2>/dev/null | wc -l)
-        if [[ -d "$json_dir" && $json_count -gt 0 ]]; then
-            ((successful++))
-            # Update version tracking file
-            update_panel_version_tracking "$data_folder" "$panel_id" "$version_created"
-            log_message "  ✓ Panel $panel_id completed successfully (successful=$successful)" "SUCCESS"
+        if download_genes "$id" "$name" "$created"; then
+            echo "  ✓ Success"
         else
-            ((failed++))
-            log_message "  ✗ Panel $panel_id failed after $RETRY_ATTEMPTS attempts (failed=$failed)" "ERROR"
+            echo "  ✗ Failed"
         fi
     done
     
-    log_message "Incremental gene extraction completed: $successful successful, $failed failed" "SUCCESS"
-    
-    # Detailed completion summary
-    local success_rate=$((successful * 100 / ${#panels_to_update[@]}))
-    log_message "Final Summary:"
-    log_message "  Total panels processed: ${#panels_to_update[@]}"
-    log_message "  Successful downloads: $successful"
-    log_message "  Failed downloads: $failed"
-    log_message "  Success rate: ${success_rate}%"
-    
-    if [[ $failed -gt 0 ]]; then
-        log_message "Some panels failed. You can re-run the script to retry failed panels." "WARNING"
-        log_message "Consider increasing --retries if failures persist." "WARNING"
-    else
-        log_message "All panels downloaded successfully! 🎉" "SUCCESS"
-    fi
-    
-    log_message "Output directory: $data_folder"
-    log_message "Version tracking files updated in individual panel directories"
-
-    # Exit with appropriate code
-    if [[ $failed -gt 0 ]]; then
-        exit 1  # Some panels failed
-    else
-        exit 0  # All successful
-    fi
+    echo "Completed: $count panels processed"
 }
 
-# Parse arguments and run main function
-parse_args "$@"
-main
+# Check dependencies
+command -v curl >/dev/null || error "curl not found"
+command -v jq >/dev/null || error "jq not found"
+
+# Run main
+main "$@"
