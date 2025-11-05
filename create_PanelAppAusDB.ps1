@@ -177,8 +177,11 @@ function Main {
                 if (-not (Invoke-ExtractionScript -ScriptPath $mergeScript -ScriptName "Panel Data Merging" -Arguments $mergeArgs)) {
                     Write-Warning-Log "Panel data merging failed, but continuing with other extractions"
                     $success = $false
-                } else {
-                    # Step 2d: Create general genelists (mandatory)
+                }
+                
+                # Step 2d: Create general genelists (mandatory) - attempt if genes.tsv exists
+                $genesFile = Join-Path $OutputPath "genes\genes.tsv"
+                if (Test-Path $genesFile) {
                     $genelistScript = Join-Path $ScriptDir "scripts\create_Genelists.ps1"
                     $genelistArgs = @("-DataPath", $OutputPath)
                     if ($Force) { $genelistArgs += "-Force" }
@@ -201,6 +204,9 @@ function Main {
                     } else {
                         Write-Log "Skipping somatic genelist creation (use -CreateSomaticGenelists to enable)"
                     }
+                } else {
+                    Write-Warning-Log "Genes file not found at $genesFile, skipping genelist creation"
+                    $success = $false
                 }
             }
         }

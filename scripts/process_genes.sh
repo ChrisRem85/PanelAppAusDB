@@ -113,13 +113,13 @@ get_panel_directories() {
     
     if [[ -n "$panel_id" ]]; then
         # Return specific panel directory if it exists
-        local panel_dir="$DATA_PATH/Panel$panel_id"
+        local panel_dir="$DATA_PATH/panels/$panel_id"
         if [[ -d "$panel_dir" ]]; then
             directories=("$panel_dir")
         fi
     else
         # Return all panel directories
-        for dir in "$DATA_PATH"/Panel*/; do
+        for dir in "$DATA_PATH"/panels/*/; do
             if [[ -d "$dir" ]]; then
                 directories+=("${dir%/}")  # Remove trailing slash
             fi

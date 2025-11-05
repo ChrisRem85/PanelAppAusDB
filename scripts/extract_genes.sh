@@ -4,13 +4,14 @@
 # Tracks version_created dates and compares with previously extracted data
 # All output files use Unix newlines (LF) for cross-platform compatibility
 
-set -euo pipefail
+set -euo pipefail  # Exit on error, undefined variables, and pipe failures
 
 # Configuration
 BASE_URL="https://panelapp-aus.org/api"
 API_VERSION="v1"
 DATA_PATH="../data"
 FOLDER=""
+PANEL_ID=""
 VERBOSE=0
 FORCE=0
 
@@ -174,6 +175,8 @@ panel_needs_update() {
     local data_folder="$3"
     local force="$4"
     
+    log_message "Checking panel $panel_id for updates (force=$force)"
+    
     if [[ "$force" == "1" ]]; then
         return 0
     fi
@@ -186,7 +189,8 @@ panel_needs_update() {
     fi
     
     # Check for JSON files in the folder
-    local json_file_count=$(find "$json_folder" -name "*.json" -type f 2>/dev/null | wc -l)
+    local json_file_count
+    json_file_count=$(find "$json_folder" -name "*.json" -type f 2>/dev/null | wc -l || echo "0")
     if [[ "$json_file_count" -eq 0 ]]; then
         log_message "Panel $panel_id has no JSON files in folder, will download"
         return 0
@@ -208,7 +212,7 @@ panel_needs_update() {
     
     # Read extraction date
     local extracted_date
-    extracted_date=$(cat "$version_extracted_file" 2>/dev/null | tr -d '[:space:]' || echo "")
+    extracted_date=$(cat "$version_extracted_file" 2>/dev/null | tr -d '[:space:]' 2>/dev/null || echo "")
     
     if [[ -z "$extracted_date" ]]; then
         log_message "Panel $panel_id has empty extraction tracking file, will download"
@@ -217,7 +221,7 @@ panel_needs_update() {
     
     # Read version created date
     local last_version_created
-    last_version_created=$(cat "$version_created_file" 2>/dev/null | tr -d '[:space:]' || echo "")
+    last_version_created=$(cat "$version_created_file" 2>/dev/null | tr -d '[:space:]' 2>/dev/null || echo "")
     
     if [[ -z "$last_version_created" ]]; then
         log_message "Panel $panel_id has empty version file, will download"
@@ -344,6 +348,8 @@ main() {
         exit 1
     fi
     
+    log_message "Found TSV file: $tsv_file"
+    
     # Display filtering information if panel ID is specified
     if [[ -n "$PANEL_ID" ]]; then
         log_message "Filtering for specific panel ID: $PANEL_ID" "INFO"
@@ -353,24 +359,43 @@ main() {
     local panels_to_update=()
     local total_panels=0
     
-    while IFS=$'\t' read -r id name version version_created; do
+    log_message "Starting to read TSV file..."
+    
+    while IFS=$'\t' read -r id name version version_created number_of_genes number_of_strs number_of_regions; do
+        log_message "Read line: id='$id', name='$name'"
+        
         # Skip header line
         if [[ "$id" == "id" ]]; then
+            log_message "Skipping header line"
             continue
         fi
+        
+        log_message "Processing non-header line: $id"
         
         # Filter for specific panel ID if provided
         if [[ -n "$PANEL_ID" && "$id" != "$PANEL_ID" ]]; then
+            log_message "Filtered out panel $id"
             continue
         fi
         
+        log_message "Panel $id passed filter"
+        
         # Validate panel ID
-        if [[ ! "$id" =~ ^[0-9]+$ ]]; then
+        if [[ -z "$id" || ! "$id" =~ ^[0-9]+$ ]]; then
+            log_message "Invalid panel ID: '$id'"
             [[ -n "$id" ]] && log_message "Invalid panel ID: $id" "WARNING"
             continue
         fi
         
-        ((total_panels++))
+        log_message "Panel $id is valid"
+        
+        total_panels=$((total_panels + 1))
+        log_message "Incremented total_panels to $total_panels"
+        
+        # Add debug for first panel
+        if [[ $total_panels -eq 1 ]]; then
+            log_message "Processing first panel: $id"
+        fi
         
         # Check if panel needs updating
         if panel_needs_update "$id" "$version_created" "$data_folder" "$FORCE"; then
@@ -378,6 +403,8 @@ main() {
         fi
         
     done < "$tsv_file"
+    
+    log_message "Finished reading TSV, total_panels: $total_panels, panels_to_update: ${#panels_to_update[@]}"
     
     if [[ ${#panels_to_update[@]} -eq 0 ]]; then
         log_message "All panels are up to date. No downloads needed." "SUCCESS"

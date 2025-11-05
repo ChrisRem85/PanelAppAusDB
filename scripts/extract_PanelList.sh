@@ -76,9 +76,13 @@ check_dependencies() {
 
 # Create output folder structure
 create_output_folder() {
-    local base_dir="../data"
+    # Get the directory where this script is located
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # Go up one level to the project root and then to data
+    local base_dir="$(dirname "$script_dir")/data"
     
-    log "Setting up output folder: $base_dir"
+    # Send log messages to stderr so they don't interfere with return value
+    log "Setting up output folder: $base_dir" >&2
     
     if [ ! -d "$base_dir" ]; then
         mkdir -p "$base_dir"
@@ -86,13 +90,13 @@ create_output_folder() {
     
     if [ ! -d "$base_dir/panel_list/json" ]; then
         mkdir -p "$base_dir/panel_list/json"
-        success "Created folder structure: $base_dir/panel_list/json"
+        success "Created folder structure: $base_dir/panel_list/json" >&2
     else
-        log "Using existing folder structure: $base_dir/panel_list/json"
+        log "Using existing folder structure: $base_dir/panel_list/json" >&2
     fi
     
     # Clear any existing JSON files to prevent inconsistencies
-    clear_json_directory "$base_dir/panel_list/json"
+    clear_json_directory "$base_dir/panel_list/json" >&2
     
     echo "$base_dir"
 }
@@ -140,15 +144,31 @@ download_panels() {
         
         local response_file="$output_dir/panel_list/json/panels_page_${page}.json"
         
-        # Download the page
-        local http_code
-        http_code=$(curl -s -w "%{http_code}" -o "$response_file" "$next_url")
+        # Ensure directory exists
+        mkdir -p "$(dirname "$response_file")"
         
-        if [ "$http_code" != "200" ]; then
-            error "HTTP $http_code error downloading page $page from: $next_url"
-            rm -f "$response_file"
+        # Download the page with timeout and better error handling
+        local http_code
+        local temp_file=$(mktemp)
+        
+        # Use timeout and capture HTTP status, handle curl properly
+        if http_code=$(timeout 30 curl -s -w "%{http_code}" -o "$response_file" "$next_url" 2>"$temp_file"); then
+            # Curl succeeded, check HTTP status
+            if [ "$http_code" != "200" ]; then
+                error "HTTP $http_code error downloading page $page from: $next_url"
+                cat "$temp_file" >&2
+                rm -f "$response_file" "$temp_file"
+                exit 1
+            fi
+        else
+            local curl_exit_code=$?
+            error "Curl command failed with exit code $curl_exit_code for page $page from: $next_url"
+            cat "$temp_file" >&2
+            rm -f "$response_file" "$temp_file"
             exit 1
         fi
+        
+        rm -f "$temp_file"
         
         # Validate JSON
         if ! jq empty "$response_file" 2>/dev/null; then
@@ -189,11 +209,14 @@ download_panels() {
 
 # Extract panel information from JSON files and save version tracking
 extract_panel_info() {
+    # Temporarily disable strict error handling for this function
+    set +e
+    
     local output_dir="$1"
     local json_dir="$output_dir/panel_list/json"
     local tsv_file="$output_dir/panel_list/panel_list.tsv"
     
-    log "Extracting panel information from JSON files..."
+    log "Extracting panel information from JSON files..." >&2
     
     # Create TSV header
     echo -e "id\tname\tversion\tversion_created\tnumber_of_genes\tnumber_of_strs\tnumber_of_regions" > "$tsv_file"
@@ -205,45 +228,53 @@ extract_panel_info() {
     for json_file in "$json_dir"/panels_page_*.json; do
         if [ -f "$json_file" ]; then
             ((file_count++))
+            log "Processing $json_file..." >&2
             
             # Extract panel information using jq (TSV format without quotes)
             jq -r '.results[]? | [.id, .name, .version, .version_created, .stats.number_of_genes, .stats.number_of_strs, .stats.number_of_regions] | @tsv' "$json_file" >> "$tsv_file"
             
-            # Create individual panel directories and save version tracking
-            jq -r '.results[]? | "\(.id)\t\(.version_created)"' "$json_file" | while IFS=$'\t' read -r panel_id version_created; do
+            # Create individual panel directories and save version tracking (simplified)
+            mkdir -p "$output_dir/panels"
+            jq -r '.results[]? | "\(.id)\t\(.version_created)"' "$json_file" > "$output_dir/panels/temp_versions_$file_count.txt"
+            
+            while IFS=$'\t' read -r panel_id version_created; do
                 if [ -n "$panel_id" ] && [ -n "$version_created" ]; then
                     local panel_dir="$output_dir/panels/$panel_id"
                     mkdir -p "$panel_dir"
                     
                     local version_file="$panel_dir/version_created.txt"
                     echo -n "$version_created" > "$version_file"
-                    
-                    log "  Created version tracking for panel $panel_id: $version_created"
                 fi
-            done
+            done < "$output_dir/panels/temp_versions_$file_count.txt"
+            
+            rm -f "$output_dir/panels/temp_versions_$file_count.txt"
             
             local current_panels
             current_panels=$(jq '.results | length' "$json_file")
+            log "  Processed $current_panels panels from $(basename "$json_file")" >&2
             panel_count=$((panel_count + current_panels))
         fi
     done
     
-    success "Extracted information from $file_count files containing $panel_count panels"
-    success "Summary saved to: $tsv_file"
-    success "Version tracking files saved in individual panel directories"
+    success "Extracted information from $file_count files containing $panel_count panels" >&2
+    success "Summary saved to: $tsv_file" >&2
+    success "Version tracking files saved in individual panel directories" >&2
     
     # Display first few lines of the summary
     if [ -f "$tsv_file" ]; then
-        log "First 5 entries in summary:"
+        log "First 5 entries in summary:" >&2
         head -6 "$tsv_file" | while IFS= read -r line; do
-            echo "  $line"
+            echo "  $line" >&2
         done
     fi
+    
+    # Re-enable strict error handling
+    set -e
 }
 
 # Main execution
 main() {
-    log "Starting PanelApp Australia data extraction..."
+    log "Starting PanelApp Australia data extraction..." >&2
     
     # Check dependencies
     check_dependencies
@@ -261,8 +292,8 @@ main() {
     # Extract panel information
     extract_panel_info "$output_dir"
     
-    success "Data extraction completed successfully!"
-    log "Output directory: $output_dir"
+    success "Data extraction completed successfully!" >&2
+    log "Output directory: $output_dir" >&2
 }
 
 # Run main function if script is executed directly

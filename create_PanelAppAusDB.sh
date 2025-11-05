@@ -233,8 +233,11 @@ main() {
                 if ! run_script "$merge_script" "Panel Data Merging" false "${merge_args[@]}"; then
                     log_message "Panel data merging failed, but continuing with other extractions" "WARNING"
                     success=false
-                else
-                    # Step 2d: Create general genelists (mandatory)
+                fi
+                
+                # Step 2d: Create general genelists (mandatory) - attempt if genes.tsv exists
+                local genes_file="$OUTPUT_PATH/genes/genes.tsv"
+                if [[ -f "$genes_file" ]]; then
                     local genelist_script="$SCRIPT_DIR/scripts/create_Genelists.sh"
                     local genelist_args=("--data-path" "$OUTPUT_PATH")
                     if [[ $VERBOSE -eq 1 ]]; then
@@ -261,6 +264,9 @@ main() {
                     else
                         log_message "Skipping somatic genelist creation (--create-somatic-genelists not specified)"
                     fi
+                else
+                    log_message "Genes file not found at $genes_file, skipping genelist creation" "WARNING"
+                    success=false
                 fi
             fi
         else
