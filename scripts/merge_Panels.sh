@@ -309,7 +309,7 @@ merge_entity_data() {
     for panel_dir in "${panel_dirs[@]}"; do
         local panel_id
         panel_id=$(basename "$panel_dir")
-        local tsv_path="$panel_dir/$entity_type/$entity_type.tsv"
+        local tsv_path="$panel_dir/$entity_type/${panel_id}.${entity_type}.tsv"
         
         if [[ -f "$tsv_path" ]]; then
             tsv_files+=("$tsv_path")
@@ -438,7 +438,7 @@ merge_entity_data() {
     # Create version file with timestamp only
     local timestamp
     timestamp=$(date -u '+%Y-%m-%dT%H:%M:%S.%6NZ')
-    printf "%s" "$timestamp" > "$version_file"
+    echo "$timestamp" > "$version_file"
     
     # Create detailed log file with validation information
     local current_date

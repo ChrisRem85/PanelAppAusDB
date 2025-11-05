@@ -130,7 +130,7 @@ test_panel_needs_processing() {
     local version_processed_path="$genes_path/version_processed.txt"
     local version_created_path="$panel_path/version_created.txt"
     local version_extracted_path="$panel_path/version_extracted.txt"
-    local genes_tsv_path="$genes_path/genes.tsv"
+    local genes_tsv_path="$genes_path/${panel_id}.genes.tsv"
     
     log_message "Checking if panel $panel_id needs processing..." "INFO"
     
@@ -140,9 +140,9 @@ test_panel_needs_processing() {
         return 0
     fi
     
-    # If genes.tsv doesn't exist, processing is needed
+    # If [panel_id].genes.tsv doesn't exist, processing is needed
     if [[ ! -f "$genes_tsv_path" ]]; then
-        log_message "Panel $panel_id needs processing: genes.tsv not found" "INFO"
+        log_message "Panel $panel_id needs processing: ${panel_id}.genes.tsv not found" "INFO"
         return 0
     fi
     
@@ -196,7 +196,7 @@ process_panel_genes() {
     local panel_id="$1"
     local panel_path="$2"
     local genes_json_path="$panel_path/genes/json"
-    local output_file="$panel_path/genes/genes.tsv"
+    local output_file="$panel_path/genes/${panel_id}.genes.tsv"
     
     if [[ ! -d "$genes_json_path" ]]; then
         log_message "No genes JSON directory found for panel $panel_id" "WARNING"
@@ -350,7 +350,7 @@ main() {
     done <<< "$panel_dirs_output"
     
     log_message "Gene processing completed: $successful successful, $skipped skipped, $failed failed" "SUCCESS"
-    log_message "Output files saved in individual panel directories as genes/genes.tsv"
+    log_message "Output files saved in individual panel directories as genes/[panel_id].genes.tsv"
 }
 
 # Run main function
