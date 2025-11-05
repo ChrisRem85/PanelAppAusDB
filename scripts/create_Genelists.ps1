@@ -397,6 +397,12 @@ function Main {
     
     # Process genes and create genelist files (individual files will be checked within)
     if (New-GenelistFiles -GenesFile $genesFile -OutputDir $outputDir -VersionFile $versionFile) {
+        # Create version file for genelists with current timestamp
+        $genelistsVersionFile = Join-Path $outputDir "version_genelists.txt"
+        $currentTimestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")
+        $currentTimestamp | Out-File -FilePath $genelistsVersionFile -Encoding UTF8 -NoNewline
+        Write-Verbose-Log "Created version file: $genelistsVersionFile with timestamp: $currentTimestamp"
+        
         Write-Success-Log "Gene to genelists conversion completed successfully"
         Write-Log "Output directory: $outputDir"
         return 0

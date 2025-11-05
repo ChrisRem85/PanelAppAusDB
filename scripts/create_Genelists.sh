@@ -434,6 +434,13 @@ main() {
     
     # Process genes and create genelist files (individual files will be checked within)
     if create_genelist_files "$genes_file" "$output_dir" "$version_file"; then
+        # Create version file for genelists with current timestamp
+        local genelists_version_file="$output_dir/version_genelists.txt"
+        local current_timestamp
+        current_timestamp=$(date -u '+%Y-%m-%dT%H:%M:%S.%7NZ' 2>/dev/null || date -u '+%Y-%m-%dT%H:%M:%SZ')
+        echo "$current_timestamp" > "$genelists_version_file"
+        log_verbose "Created version file: $genelists_version_file with timestamp: $current_timestamp"
+        
         log_message "Gene to genelists conversion completed successfully" "SUCCESS"
         log_message "Output directory: $output_dir"
         return 0

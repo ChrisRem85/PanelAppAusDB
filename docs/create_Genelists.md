@@ -51,13 +51,15 @@ data/
 └── genelists/
     ├── genes_to_genelists.PanelAppAustralia_Green.txt    # Confidence level 3 genes
     ├── genes_to_genelists.PanelAppAustralia_Amber.txt    # Confidence level 2 genes
-    └── genelist.PanelAppAustralia.txt                    # All unique ensembl_ids
+    ├── genelist.PanelAppAustralia_GreenAmber.txt         # All unique ensembl_ids
+    └── version_genelists.txt                             # Creation timestamp
 ```
 
 ## Key Features
 
 - ✅ **Confidence-based filtering** - Separate files for Green (3) and Amber (2) confidence levels
 - ✅ **Simple genelist** - All unique ensembl_ids in a single column format
+- ✅ **Version tracking** - Automatic creation of version_genelists.txt with ISO 8601 UTC timestamp
 - ✅ **Standardized format** - Two-column output for confidence files, one-column for simple genelist
 - ✅ **Proper sorting** - Sorted by ensembl_id, then by panel_id for consistency
 - ✅ **Panel identification** - Panel IDs formatted as "Paus:[panel_id].[Green|Amber]"
@@ -97,6 +99,11 @@ ENSG00000003989
 ENSG00000005007
 ```
 
+**Version tracking file:**
+```
+2025-11-05T11:28:57.8192891Z
+```
+
 ### Column Descriptions
 
 **Green/Amber files:**
@@ -105,6 +112,9 @@ ENSG00000005007
 
 **Simple genelist file:**
 - **Column 1**: Ensembl gene ID (ENSG identifiers) - unique, sorted, no headers
+
+**Version file:**
+- Contains ISO 8601 UTC timestamp with nanosecond precision indicating when genelists were created
 
 ## Processing Logic
 
@@ -116,6 +126,7 @@ ENSG00000005007
 6. **Simple Genelist Creation**: Extracts all unique ensembl_ids sorted alphanumerically
 7. **Sorting**: Orders output by ensembl_id first, then by panel identifier
 8. **File Output**: Writes tab-separated confidence files and single-column simple genelist without headers
+9. **Version Tracking**: Creates version_genelists.txt with ISO 8601 UTC timestamp upon successful completion
 
 ## Use Cases
 
@@ -123,8 +134,9 @@ ENSG00000005007
 - **Database Integration**: Load panel-specific gene sets into research databases  
 - **Quality Control**: Separate high-confidence (Green) from moderate-confidence (Amber) genes
 - **Cross-Panel Studies**: Compare gene membership across different panels by confidence level
-- **Simple Gene Lists**: Use the basic genelist.PanelAppAustralia.txt for tools requiring simple ensembl_id lists
+- **Simple Gene Lists**: Use the basic genelist.PanelAppAustralia_GreenAmber.txt for tools requiring simple ensembl_id lists
 - **External Tool Integration**: Format compatible with various bioinformatics pipelines
+- **Version Tracking**: Monitor when genelists were last updated for audit trails and reproducibility
 
 ## Statistics Example
 

@@ -245,6 +245,7 @@ data/
 │   ├── genes_to_genelists.PanelAppAustralia_Green.txt  # ← High confidence genes (level 3)
 │   ├── genes_to_genelists.PanelAppAustralia_Amber.txt  # ← Moderate confidence genes (level 2)
 │   ├── genelist.PanelAppAustralia_GreenAmber.txt       # ← All unique ensembl_ids (simple format)
+│   ├── version_genelists.txt                          # ← Genelist creation timestamp
 │   ├── genes_to_genelists.PanelAppAustralia_Somatic_Green.txt  # ← Cancer/somatic high confidence
 │   ├── genes_to_genelists.PanelAppAustralia_Somatic_Amber.txt  # ← Cancer/somatic moderate confidence
 │   └── genelist.PanelAppAustralia_Somatic_GreenAmber.txt       # ← Unique cancer/somatic ensembl_ids
@@ -264,6 +265,7 @@ data/
 | **`genes/version_merged.txt`** | Clean merge timestamp (no trailing newlines) |
 | **`genes/genes.tsv.log`** | Detailed validation results and metrics |
 | **`genelists/*.txt`** | **Confidence-based genelist files and simple ensembl_id list for external tools** |
+| **`genelists/version_genelists.txt`** | **Genelist creation timestamp (ISO 8601 UTC format)** |
 | **`panels/*/genes.tsv`** | Individual panel gene data with extracted tags |
 
 > **💡 Pro Tip**: The consolidated `genes/genes.tsv` file includes a `panel_id` column and extracted tags, making it perfect for cross-panel analysis and research. All version files now use clean timestamps without trailing newlines for better automation compatibility.
@@ -345,7 +347,13 @@ This project is open source. Please check the LICENSE file for details.
 
 ## 📋 Changelog
 
-### Version 2.2.0 (Current)
+### Version 2.3.0 (Current)
+- **NEW**: Version tracking for genelist creation - automatic `version_genelists.txt` file generation
+- **NEW**: ISO 8601 UTC timestamp format with nanosecond precision for genelist version tracking
+- **ENHANCED**: Both PowerShell and Bash genelist scripts now create version files automatically
+- **ENHANCED**: Consistent version file formatting across all script components
+
+### Version 2.2.0
 - **NEW**: Tag extraction feature - genes now include tags as comma-separated values in final column
 - **NEW**: Clean file structure - separated version files (timestamp only) from detailed validation logs
 - **ENHANCED**: Removed confirmation prompts for streamlined automation
