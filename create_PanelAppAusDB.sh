@@ -122,7 +122,7 @@ main() {
     # Step 2: Gene extraction pipeline
     if [[ $SKIP_GENES -eq 0 ]]; then
         # 2a: Extract genes
-        if ! run_script "$SCRIPT_DIR/scripts/extract_genes.sh" "Gene Extraction" false "${common_args[@]}"; then
+        if ! run_script "$SCRIPT_DIR/scripts/extract_Genes.sh" "Gene Extraction" false "${common_args[@]}"; then
             log "Gene extraction failed, continuing..."
             success=false
         fi
@@ -134,7 +134,7 @@ main() {
         fi
         
         # 2c: Merge panels
-        if ! run_script "$SCRIPT_DIR/scripts/merge_panels.sh" "Panel Merging" false "${common_args[@]}"; then
+        if ! run_script "$SCRIPT_DIR/scripts/merge_Panels.sh" "Panel Merging" false "${common_args[@]}"; then
             log "Panel merging failed, continuing..."
             success=false
         fi
