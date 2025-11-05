@@ -364,8 +364,7 @@ function Main {
     $greenFile = Join-Path $outputDir "genes_to_genelists.PanelAppAustralia_Green.txt"
     $amberFile = Join-Path $outputDir "genes_to_genelists.PanelAppAustralia_Amber.txt"
     $simpleFile = Join-Path $outputDir "genelist.PanelAppAustralia_GreenAmber.txt"
-    $outputFiles = @($greenFile, $amberFile, $simpleFile)
-    
+
     # Check if any regeneration is needed (for overall process decision)
     # Note: Simple genelist is now dependent on Green/Amber files, not version file
     $confidenceFiles = @($greenFile, $amberFile)
