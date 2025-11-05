@@ -64,38 +64,6 @@ function Clear-JsonDirectory {
     }
 }
 
-# Find the latest data folder
-function Find-LatestDataFolder {
-    param([string]$DataPath)
-    
-    if (-not (Test-Path $DataPath)) {
-        Write-Error-Log "Data path does not exist: $DataPath"
-        return $null
-    }
-    
-    # Look for date folders (YYYYMMDD format)
-    $dateFolders = Get-ChildItem -Path $DataPath -Directory | Where-Object {
-        $_.Name -match '^\d{8}$' -and $_.Name.Length -eq 8
-    } | Sort-Object Name -Descending
-    
-    if ($dateFolders.Count -eq 0) {
-        # Try today's date
-        $today = Get-Date -Format "yyyyMMdd"
-        $todayFolder = Join-Path $DataPath $today
-        if (Test-Path $todayFolder) {
-            Write-Log "Using today's folder: $todayFolder"
-            return $todayFolder
-        } else {
-            Write-Error-Log "No data folders found and today's folder doesn't exist: $todayFolder"
-            return $null
-        }
-    }
-    
-    $latestFolder = $dateFolders[0].FullName
-    Write-Log "Using latest data folder: $latestFolder"
-    return $latestFolder
-}
-
 # Update version tracking file for successfully downloaded panel
 function Update-PanelVersionTracking {
     param([string]$DataFolder, [hashtable]$Panel)

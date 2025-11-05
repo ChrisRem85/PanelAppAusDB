@@ -71,8 +71,7 @@ OPTIONS:
     --help             Show this help message
 
 EXAMPLES:
-    $0                                    # Use latest data folder
-
+    $0                                    # Use data path directly
     $0 --force                            # Force re-download all
     $0 --data-path /path/to/data --verbose # Custom path with verbose output
 EOF
@@ -110,38 +109,6 @@ parse_args() {
                 ;;
         esac
     done
-}
-
-# Find the latest data folder
-find_latest_data_folder() {
-    local data_path="$1"
-    
-    if [[ ! -d "$data_path" ]]; then
-        log_message "Data path does not exist: $data_path" "ERROR"
-        return 1
-    fi
-    
-    # Look for date folders (YYYYMMDD format)
-    local latest_folder
-    latest_folder=$(find "$data_path" -maxdepth 1 -type d -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' | sort -r | head -1)
-    
-    if [[ -z "$latest_folder" ]]; then
-        # Try today's date
-        local today
-        today=$(date '+%Y%m%d')
-        local today_folder="$data_path/$today"
-        if [[ -d "$today_folder" ]]; then
-            log_message "Using today's folder: $today_folder"
-            echo "$today_folder"
-            return 0
-        else
-            log_message "No data folders found and today's folder doesn't exist: $today_folder" "ERROR"
-            return 1
-        fi
-    fi
-    
-    log_message "Using latest data folder: $latest_folder"
-    echo "$latest_folder"
 }
 
 # Update version tracking file for successfully downloaded panel
