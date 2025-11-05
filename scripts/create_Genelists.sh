@@ -12,13 +12,6 @@ DATA_PATH="./data"
 FORCE=0
 VERBOSE=0
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
 # Logging functions
 log_message() {
     local message="$1"
@@ -27,16 +20,16 @@ log_message() {
     
     case "$level" in
         "ERROR")
-            echo -e "${BLUE}[$timestamp]${NC} ${RED}$message${NC}" >&2
+            echo "[$timestamp] $message" >&2
             ;;
         "SUCCESS")
-            echo -e "${BLUE}[$timestamp]${NC} ${GREEN}$message${NC}"
+            echo "[$timestamp] $message"
             ;;
         "WARNING")
-            echo -e "${BLUE}[$timestamp]${NC} ${YELLOW}$message${NC}"
+            echo "[$timestamp] $message"
             ;;
         *)
-            echo -e "${BLUE}[$timestamp]${NC} ${BLUE}$message${NC}"
+            echo "[$timestamp] $message"
             ;;
     esac
 }
