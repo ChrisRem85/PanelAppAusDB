@@ -21,6 +21,9 @@ FORCE=0
 VERBOSE=0
 CREATE_SOMATIC_GENELISTS=0
 
+# API retry configuration
+RETRY_ATTEMPTS=""
+
 # Logging functions
 log_message() {
     local message="$1"
@@ -64,6 +67,10 @@ OPTIONS:
     --force              Force re-download all data (ignore version tracking)
     --verbose            Enable verbose logging
     --create-somatic-genelists  Generate somatic genelists in addition to standard genelists (optional)
+    
+    API retry configuration:
+    --retries N             Number of retry attempts for failed API requests (default: 3)
+    
     --help              Show this help message
 
 EXAMPLES:
@@ -74,6 +81,7 @@ EXAMPLES:
     $0 --force                            # Force re-download all
     $0 --output-path /path/to/data        # Custom output path
     $0 --verbose                          # Verbose logging
+    $0 --retries 5                       # Use 5 retry attempts for API calls
 
 EOF
 }
@@ -113,6 +121,10 @@ parse_args() {
             --create-somatic-genelists)
                 CREATE_SOMATIC_GENELISTS=1
                 shift
+                ;;
+            --retries)
+                RETRY_ATTEMPTS="$2"
+                shift 2
                 ;;
             --help|-h)
                 show_usage
@@ -172,6 +184,10 @@ main() {
     local panel_list_script="$SCRIPT_DIR/scripts/extract_PanelList.sh"
     local panel_list_args=("--output-path" "$OUTPUT_PATH")
     
+    if [[ -n "$RETRY_ATTEMPTS" ]]; then
+        panel_list_args+=("--retries" "$RETRY_ATTEMPTS")
+    fi
+    
     if ! run_script "$panel_list_script" "Panel List Extraction" false "${panel_list_args[@]}"; then
         log_message "Panel list extraction failed. Cannot continue." "ERROR"
         exit 1
@@ -197,74 +213,85 @@ main() {
         if [[ -n "$PANEL_ID" ]]; then
             gene_args+=("--panel-id" "$PANEL_ID")
         fi
+        if [[ -n "$RETRY_ATTEMPTS" ]]; then
+            gene_args+=("--retries" "$RETRY_ATTEMPTS")
+        fi
+        if [[ $VERBOSE -eq 1 ]]; then
+            gene_args+=("--verbose")
+        fi
         
-        if run_script "$gene_script" "Gene Data Extraction" false "${gene_args[@]}"; then
-            # Step 2b: Process gene data (convert JSON to TSV)
-            local process_script="$SCRIPT_DIR/scripts/process_Genes.sh"
-            local process_args=("--data-path" "$OUTPUT_PATH")
-            if [[ $FORCE -eq 1 ]]; then
-                process_args+=("--force")
-            fi
-            if [[ -n "$PANEL_ID" ]]; then
-                process_args+=("--panel-id" "$PANEL_ID")
-            fi
-            
-            if ! run_script "$process_script" "Gene Data Processing" false "${process_args[@]}"; then
-                log_message "Gene processing failed, but continuing with other extractions" "WARNING"
-                success=false
-            else
-                # Step 2c: Merge panel data (consolidate TSVs with panel_id column)
-                local merge_script="$SCRIPT_DIR/scripts/merge_Panels.sh"
-                local merge_args=("--data-path" "$OUTPUT_PATH")
-                if [[ $FORCE -eq 1 ]]; then
-                    merge_args+=("--force")
-                fi
-                if [[ $VERBOSE -eq 1 ]]; then
-                    merge_args+=("--verbose")
-                fi
-                
-                if ! run_script "$merge_script" "Panel Data Merging" false "${merge_args[@]}"; then
-                    log_message "Panel data merging failed, but continuing with other extractions" "WARNING"
-                    success=false
-                fi
-                
-                # Step 2d: Create general genelists (mandatory) - attempt if genes.tsv exists
-                local genes_file="$OUTPUT_PATH/genes/genes.tsv"
-                if [[ -f "$genes_file" ]]; then
-                    local genelist_script="$SCRIPT_DIR/scripts/create_Genelists.sh"
-                    local genelist_args=("--data-path" "$OUTPUT_PATH")
-                    if [[ $VERBOSE -eq 1 ]]; then
-                        genelist_args+=("--verbose")
-                    fi
-                    
-                    if ! run_script "$genelist_script" "General Genelist Creation" false "${genelist_args[@]}"; then
-                        log_message "General genelist creation failed, but continuing with other extractions" "WARNING"
-                        success=false
-                    fi
-                    
-                    # Step 2e: Create somatic genelists (optional)
-                    if [[ $CREATE_SOMATIC_GENELISTS -eq 1 ]]; then
-                        local somatic_script="$SCRIPT_DIR/scripts/create_Somatic_genelists.sh"
-                        local somatic_args=("--data-path" "$OUTPUT_PATH")
-                        if [[ $VERBOSE -eq 1 ]]; then
-                            somatic_args+=("--verbose")
-                        fi
-                        
-                        if ! run_script "$somatic_script" "Somatic Genelist Creation" false "${somatic_args[@]}"; then
-                            log_message "Somatic genelist creation failed, but continuing with other extractions" "WARNING"
-                            success=false
-                        fi
-                    else
-                        log_message "Skipping somatic genelist creation (--create-somatic-genelists not specified)"
-                    fi
-                else
-                    log_message "Genes file not found at $genes_file, skipping genelist creation" "WARNING"
-                    success=false
-                fi
-            fi
-        else
+        if ! run_script "$gene_script" "Gene Data Extraction" false "${gene_args[@]}"; then
             log_message "Gene extraction failed, but continuing with other extractions" "WARNING"
             success=false
+        fi
+        
+        # Step 2b: Process gene data (convert JSON to TSV) - attempt regardless of extraction result
+        local process_script="$SCRIPT_DIR/scripts/process_Genes.sh"
+        local process_args=("--data-path" "$OUTPUT_PATH")
+        if [[ $FORCE -eq 1 ]]; then
+            process_args+=("--force")
+        fi
+        if [[ -n "$PANEL_ID" ]]; then
+            process_args+=("--panel-id" "$PANEL_ID")
+        fi
+        
+        if ! run_script "$process_script" "Gene Data Processing" false "${process_args[@]}"; then
+            log_message "Gene processing failed, but continuing with other extractions" "WARNING"
+            success=false
+        fi
+        
+        # Step 2c: Merge panel data (consolidate TSVs with panel_id column) - attempt regardless
+        local merge_script="$SCRIPT_DIR/scripts/merge_Panels.sh"
+        local merge_args=("--data-path" "$OUTPUT_PATH")
+        if [[ $FORCE -eq 1 ]]; then
+            merge_args+=("--force")
+        fi
+        if [[ $VERBOSE -eq 1 ]]; then
+            merge_args+=("--verbose")
+        fi
+        
+        if ! run_script "$merge_script" "Panel Data Merging" false "${merge_args[@]}"; then
+            log_message "Panel data merging failed, but continuing with other extractions" "WARNING"
+            success=false
+        fi
+        
+        # Step 2d: Create general genelists (mandatory) - attempt if genes.tsv exists
+        local genes_file="$OUTPUT_PATH/genes/genes.tsv"
+        if [[ -f "$genes_file" ]]; then
+            local genelist_script="$SCRIPT_DIR/scripts/create_Genelists.sh"
+            local genelist_args=("--data-path" "$OUTPUT_PATH")
+            if [[ $VERBOSE -eq 1 ]]; then
+                genelist_args+=("--verbose")
+            fi
+            
+            if ! run_script "$genelist_script" "General Genelist Creation" false "${genelist_args[@]}"; then
+                log_message "General genelist creation failed, but continuing with other extractions" "WARNING"
+                success=false
+            fi
+        else
+            log_message "No genes.tsv file found, skipping genelist creation" "WARNING"
+            success=false
+        fi
+        
+        # Step 2e: Create somatic genelists (optional)
+        if [[ $CREATE_SOMATIC_GENELISTS -eq 1 ]]; then
+            local genes_file="$OUTPUT_PATH/genes/genes.tsv"
+            if [[ -f "$genes_file" ]]; then
+                local somatic_script="$SCRIPT_DIR/scripts/create_Somatic_genelists.sh"
+                local somatic_args=("--data-path" "$OUTPUT_PATH")
+                if [[ $VERBOSE -eq 1 ]]; then
+                    somatic_args+=("--verbose")
+                fi
+                
+                if ! run_script "$somatic_script" "Somatic Genelist Creation" false "${somatic_args[@]}"; then
+                    log_message "Somatic genelist creation failed, but continuing with other extractions" "WARNING"
+                    success=false
+                fi
+            else
+                log_message "No genes.tsv file found, skipping somatic genelist creation" "WARNING"
+            fi
+        else
+            log_message "Skipping somatic genelist creation (--create-somatic-genelists not specified)"
         fi
     else
         log_message "Skipping gene extraction, processing, and merging (--skip-genes specified)"
@@ -274,6 +301,10 @@ main() {
     if [[ $SKIP_STRS -eq 0 ]]; then
         local str_script="$SCRIPT_DIR/scripts/extract_strs.sh"
         local str_args=("--data-path" "$OUTPUT_PATH")
+        
+        if [[ -n "$RETRY_ATTEMPTS" ]]; then
+            str_args+=("--retries" "$RETRY_ATTEMPTS")
+        fi
         
         if ! run_script "$str_script" "STR Data Extraction" true "${str_args[@]}"; then
             log_message "STR extraction failed or not implemented yet" "WARNING"
@@ -286,6 +317,10 @@ main() {
     if [[ $SKIP_REGIONS -eq 0 ]]; then
         local region_script="$SCRIPT_DIR/scripts/extract_regions.sh"
         local region_args=("--data-path" "$OUTPUT_PATH")
+        
+        if [[ -n "$RETRY_ATTEMPTS" ]]; then
+            region_args+=("--retries" "$RETRY_ATTEMPTS")
+        fi
         
         if ! run_script "$region_script" "Region Data Extraction" true "${region_args[@]}"; then
             log_message "Region extraction failed or not implemented yet" "WARNING"

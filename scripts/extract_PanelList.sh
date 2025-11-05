@@ -13,6 +13,12 @@ API_VERSION="v1"
 SWAGGER_URL="https://panelapp-aus.org/api/docs/?format=openapi"
 EXPECTED_API_VERSION="v1"
 
+# Retry configuration
+RETRY_ATTEMPTS=3           # Number of retry attempts for failed downloads
+
+# Output path configuration
+OUTPUT_PATH=""             # Custom output path (optional)
+
 # Logging function
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
@@ -28,6 +34,69 @@ success() {
 
 warning() {
     echo "[WARNING] $1"
+}
+
+# Retry mechanism for API requests
+retry_with_backoff() {
+    local max_attempts="$1"
+    shift 1
+    local command=("$@")
+    
+    local attempt=1
+    local delay=5
+    
+    while [[ $attempt -le $max_attempts ]]; do
+        log "Attempt $attempt/$max_attempts for API request"
+        
+        if "${command[@]}"; then
+            return 0
+        fi
+        
+        if [[ $attempt -eq $max_attempts ]]; then
+            error "All $max_attempts attempts failed"
+            return 1
+        fi
+        
+        warning "Attempt $attempt failed, retrying in ${delay}s..."
+        sleep "$delay"
+        
+        # Exponential backoff
+        delay=$((delay * 2))
+        ((attempt++))
+    done
+}
+
+# Retry mechanism for commands that need to capture output
+retry_with_backoff_capture() {
+    local max_attempts="$1"
+    local output_var="$2"
+    shift 2
+    local command=("$@")
+    
+    local attempt=1
+    local delay=5
+    
+    while [[ $attempt -le $max_attempts ]]; do
+        log "Attempt $attempt/$max_attempts for API request"
+        
+        local result
+        if result=$("${command[@]}" 2>/dev/null); then
+            eval "$output_var=\"\$result\""
+            return 0
+        fi
+        
+        if [[ $attempt -eq $max_attempts ]]; then
+            error "All $max_attempts attempts failed"
+            return 1
+        fi
+        
+        warning "Attempt $attempt failed, retrying in ${delay}s..."
+        sleep "$delay"
+        
+        # Exponential backoff
+        delay=$((delay * 2))
+        ((attempt++))
+    done
 }
 
 # Clear JSON directory to prevent inconsistencies from old files
@@ -69,13 +138,17 @@ check_dependencies() {
 
 # Create output folder structure
 create_output_folder() {
-    # Get the directory where this script is located
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    # Go up one level to the project root and then to data
-    local base_dir="$(dirname "$script_dir")/data"
-    
-    # Send log messages to stderr so they don't interfere with return value
-    log "Setting up output folder: $base_dir" >&2
+    # Check if custom output path is provided
+    if [[ -n "$OUTPUT_PATH" ]]; then
+        local base_dir="$OUTPUT_PATH"
+        log "Using custom output folder: $base_dir" >&2
+    else
+        # Get the directory where this script is located
+        local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # Go up one level to the project root and then to data
+        local base_dir="$(dirname "$script_dir")/data"
+        log "Setting up output folder: $base_dir" >&2
+    fi
     
     if [ ! -d "$base_dir" ]; then
         mkdir -p "$base_dir"
@@ -98,11 +171,12 @@ create_output_folder() {
 check_api_version() {
     log "Checking API version..."
     
+    # Use retry mechanism for API version check
     local swagger_response
-    swagger_response=$(curl -s "$SWAGGER_URL" || {
-        error "Failed to fetch swagger documentation"
+    if ! retry_with_backoff_capture "$RETRY_ATTEMPTS" swagger_response curl -s "$SWAGGER_URL"; then
+        error "Failed to fetch swagger documentation after $RETRY_ATTEMPTS attempts"
         exit 1
-    })
+    fi
     
     # Extract version from swagger JSON
     local api_version
@@ -140,22 +214,12 @@ download_panels() {
         # Ensure directory exists
         mkdir -p "$(dirname "$response_file")"
         
-        # Download the page with timeout and better error handling
-        local http_code
+        # Download the page with timeout and retry mechanism
         local temp_file=$(mktemp)
         
-        # Use timeout and capture HTTP status, handle curl properly
-        if http_code=$(timeout 30 curl -s -w "%{http_code}" -o "$response_file" "$next_url" 2>"$temp_file"); then
-            # Curl succeeded, check HTTP status
-            if [ "$http_code" != "200" ]; then
-                error "HTTP $http_code error downloading page $page from: $next_url"
-                cat "$temp_file" >&2
-                rm -f "$response_file" "$temp_file"
-                exit 1
-            fi
-        else
-            local curl_exit_code=$?
-            error "Curl command failed with exit code $curl_exit_code for page $page from: $next_url"
+        # Use retry mechanism for the download
+        if ! retry_with_backoff "$RETRY_ATTEMPTS" timeout 30 curl -s -f -o "$response_file" "$next_url" 2>"$temp_file"; then
+            error "Failed to download page $page after $RETRY_ATTEMPTS attempts from: $next_url"
             cat "$temp_file" >&2
             rm -f "$response_file" "$temp_file"
             exit 1
@@ -265,8 +329,56 @@ extract_panel_info() {
     set -e
 }
 
+# Show usage information
+show_usage() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Extract panel list data from PanelApp Australia API.
+
+OPTIONS:
+    --output-path PATH  Custom output path for data (default: auto-detected)
+    --retries N         Number of retry attempts for failed downloads (default: 3)
+    --help, -h          Show this help message
+
+EXAMPLES:
+    $0                                  # Use default settings
+    $0 --retries 5                      # Use 5 retry attempts
+    $0 --output-path /custom/path       # Use custom output path
+
+EOF
+}
+
+# Parse command line arguments
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --output-path)
+                OUTPUT_PATH="$2"
+                shift 2
+                ;;
+            --retries)
+                RETRY_ATTEMPTS="$2"
+                shift 2
+                ;;
+            --help|-h)
+                show_usage
+                exit 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                show_usage
+                exit 1
+                ;;
+        esac
+    done
+}
+
 # Main execution
 main() {
+    # Parse command line arguments first
+    parse_arguments "$@"
+    
     log "Starting PanelApp Australia data extraction..." >&2
     
     # Check dependencies

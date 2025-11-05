@@ -15,6 +15,9 @@ PANEL_ID=""
 VERBOSE=0
 FORCE=0
 
+# Retry configuration
+RETRY_ATTEMPTS=3           # Number of retry attempts for failed downloads
+
 # Logging functions
 log_message() {
     local message="$1"
@@ -55,6 +58,38 @@ clear_json_directory() {
     fi
 }
 
+# Retry mechanism for API requests
+retry_with_backoff() {
+    local max_attempts="$1"
+    shift 1
+    local command=("$@")
+    
+    local attempt=1
+    local delay=5
+    
+    while [[ $attempt -le $max_attempts ]]; do
+        if [[ $VERBOSE -eq 1 ]]; then
+            log_message "Attempt $attempt/$max_attempts: ${command[*]}" "INFO"
+        fi
+        
+        if "${command[@]}"; then
+            return 0
+        fi
+        
+        if [[ $attempt -eq $max_attempts ]]; then
+            log_message "All $max_attempts attempts failed" "ERROR"
+            return 1
+        fi
+        
+        log_message "Attempt $attempt failed, retrying in ${delay}s..." "WARNING"
+        sleep "$delay"
+        
+        # Exponential backoff
+        delay=$((delay * 2))
+        ((attempt++))
+    done
+}
+
 # Show usage information
 show_usage() {
     cat << EOF
@@ -68,12 +103,14 @@ OPTIONS:
     --panel-id ID       Extract genes for specific panel ID only
     --force             Force re-download all panels
     --verbose           Enable verbose logging
+    --retries N         Number of retry attempts for failed downloads (default: 3)
     --help             Show this help message
 
 EXAMPLES:
     $0                                    # Use data path directly
     $0 --force                            # Force re-download all
     $0 --data-path /path/to/data --verbose # Custom path with verbose output
+    $0 --retries 5                 # Use 5 retry attempts
 EOF
 }
 
@@ -97,6 +134,10 @@ parse_args() {
             --verbose)
                 VERBOSE=1
                 shift
+                ;;
+            --retries)
+                RETRY_ATTEMPTS="$2"
+                shift 2
                 ;;
             --help|-h)
                 show_usage
@@ -230,8 +271,9 @@ download_panel_genes() {
         
         local response_file="$panel_dir/genes_page_$page.json"
         
-        if ! curl -s -f "$next_url" -o "$response_file"; then
-            log_message "Error downloading genes for panel $panel_id" "ERROR"
+        # Use retry mechanism for the curl request
+        if ! retry_with_backoff "$RETRY_ATTEMPTS" curl -s -f "$next_url" -o "$response_file"; then
+            log_message "Error downloading genes for panel $panel_id after $RETRY_ATTEMPTS attempts" "ERROR"
             return 1
         fi
         
@@ -290,6 +332,16 @@ EOF
 # Main execution function
 main() {
     log_message "Starting PanelApp Australia incremental gene extraction..."
+    
+    # Display configuration
+    log_message "Configuration:"
+    log_message "  Retry attempts: $RETRY_ATTEMPTS"
+    if [[ -n "$PANEL_ID" ]]; then
+        log_message "  Filtering for panel ID: $PANEL_ID"
+    fi
+    if [[ $FORCE -eq 1 ]]; then
+        log_message "  Force mode: Enabled (will re-download all panels)"
+    fi
     
     # Determine data folder
     local data_folder
@@ -372,6 +424,7 @@ main() {
     fi
     
     log_message "Will download genes for ${#panels_to_update[@]} panels (out of $total_panels total)"
+    log_message "Processing with $RETRY_ATTEMPTS retry attempts each"
     
     # Download genes for panels that need updating
     local successful=0
@@ -380,18 +433,34 @@ main() {
     for panel_data in "${panels_to_update[@]}"; do
         IFS='|' read -r panel_id panel_name panel_version version_created <<< "$panel_data"
         
+        log_message "[$((successful + failed + 1))/${#panels_to_update[@]}] Processing panel $panel_id ($panel_name)"
+        
         if download_panel_genes "$data_folder" "$panel_id" "$panel_name" "$version_created" > /dev/null; then
             ((successful++))
             # Update version tracking file
             update_panel_version_tracking "$data_folder" "$panel_id" "$version_created"
+            log_message "  ✓ Panel $panel_id completed successfully" "SUCCESS"
         else
             ((failed++))
+            log_message "  ✗ Panel $panel_id failed after $RETRY_ATTEMPTS attempts" "ERROR"
         fi
     done
     
     log_message "Incremental gene extraction completed: $successful successful, $failed failed" "SUCCESS"
+    
+    # Detailed completion summary
+    local success_rate=$((successful * 100 / ${#panels_to_update[@]}))
+    log_message "Final Summary:"
+    log_message "  Total panels processed: ${#panels_to_update[@]}"
+    log_message "  Successful downloads: $successful"
+    log_message "  Failed downloads: $failed"
+    log_message "  Success rate: ${success_rate}%"
+    
     if [[ $failed -gt 0 ]]; then
-        log_message "Some panels failed. Check logs for details." "WARNING"
+        log_message "Some panels failed. You can re-run the script to retry failed panels." "WARNING"
+        log_message "Consider increasing --retries if failures persist." "WARNING"
+    else
+        log_message "All panels downloaded successfully! 🎉" "SUCCESS"
     fi
     
     log_message "Output directory: $data_folder"
