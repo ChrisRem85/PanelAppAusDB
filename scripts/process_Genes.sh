@@ -57,7 +57,7 @@ usage() {
     echo "    $0                          # Process all panels with incremental logic"
     echo "    $0 --panel-id 6             # Process only panel 6"
     echo "    $0 --force                  # Force process all panels"
-    echo "    $0 --data-path \"/path/data\" # Custom data path"
+    echo "    $0 --data-path /path/data   # Custom data path"
     echo "    $0 --verbose                # Verbose logging"
     echo ""
 }

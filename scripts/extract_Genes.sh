@@ -325,6 +325,7 @@ download_panel_genes() {
   "pages_downloaded": $((page-1))
 }
 EOF
+    return 0
 }
 
 
@@ -435,14 +436,20 @@ main() {
         
         log_message "[$((successful + failed + 1))/${#panels_to_update[@]}] Processing panel $panel_id ($panel_name)"
         
-        if download_panel_genes "$data_folder" "$panel_id" "$panel_name" "$version_created" > /dev/null; then
+        # Download genes and check if files were created successfully
+        download_panel_genes "$data_folder" "$panel_id" "$panel_name" "$version_created" >/dev/null 2>&1
+        
+        # Verify download succeeded by checking if JSON files exist
+        local json_dir="$data_folder/panels/$panel_id/genes/json"
+        local json_count=$(find "$json_dir" -name "*.json" 2>/dev/null | wc -l)
+        if [[ -d "$json_dir" && $json_count -gt 0 ]]; then
             ((successful++))
             # Update version tracking file
             update_panel_version_tracking "$data_folder" "$panel_id" "$version_created"
-            log_message "  ✓ Panel $panel_id completed successfully" "SUCCESS"
+            log_message "  ✓ Panel $panel_id completed successfully (successful=$successful)" "SUCCESS"
         else
             ((failed++))
-            log_message "  ✗ Panel $panel_id failed after $RETRY_ATTEMPTS attempts" "ERROR"
+            log_message "  ✗ Panel $panel_id failed after $RETRY_ATTEMPTS attempts (failed=$failed)" "ERROR"
         fi
     done
     
@@ -465,6 +472,13 @@ main() {
     
     log_message "Output directory: $data_folder"
     log_message "Version tracking files updated in individual panel directories"
+
+    # Exit with appropriate code
+    if [[ $failed -gt 0 ]]; then
+        exit 1  # Some panels failed
+    else
+        exit 0  # All successful
+    fi
 }
 
 # Parse arguments and run main function

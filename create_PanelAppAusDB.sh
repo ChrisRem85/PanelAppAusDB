@@ -159,10 +159,8 @@ run_script() {
     
     log_message "Running $script_name..."
     
-    # Add verbose flag if specified
-    if [[ $VERBOSE -eq 1 ]]; then
-        args+=(--verbose)
-    fi
+    # Note: --verbose is added explicitly in the calling code for each script that supports it
+    # Don't add --verbose automatically here to avoid errors with scripts that don't support it
     
     if bash "$script_path" "${args[@]}"; then
         log_message "$script_name completed successfully" "SUCCESS"
@@ -260,6 +258,9 @@ main() {
         if [[ -f "$genes_file" ]]; then
             local genelist_script="$SCRIPT_DIR/scripts/create_Genelists.sh"
             local genelist_args=("--data-path" "$DATA_PATH")
+            if [[ $FORCE -eq 1 ]]; then
+                genelist_args+=("--force")
+            fi
             if [[ $VERBOSE -eq 1 ]]; then
                 genelist_args+=("--verbose")
             fi
@@ -279,6 +280,9 @@ main() {
             if [[ -f "$genes_file" ]]; then
                 local somatic_script="$SCRIPT_DIR/scripts/create_Somatic_genelists.sh"
                 local somatic_args=("--data-path" "$DATA_PATH")
+                if [[ $FORCE -eq 1 ]]; then
+                    somatic_args+=("--force")
+                fi
                 if [[ $VERBOSE -eq 1 ]]; then
                     somatic_args+=("--verbose")
                 fi
