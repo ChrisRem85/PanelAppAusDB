@@ -54,8 +54,8 @@ needs_processing() {
     
     # Check if JSON is newer than TSV
     local json_dir="$genes_dir/json"
-    [[ -d "$json_dir" ]] || return 1
-    
+    [[ ! -d "$json_dir" ]] && return 0
+            
     local newest_json=$(find "$json_dir" -name "*.json" -type f -printf '%T@\n' | sort -n | tail -1)
     local tsv_time=$(stat -c '%Y' "$tsv_file" 2>/dev/null || echo "0")
     
@@ -155,17 +155,22 @@ main() {
         local panel_dir="$OUTPUT_DIR/panels/$PANEL_ID"
         [[ ! -d "$panel_dir" ]] && error "Panel $PANEL_ID not found"
         
-        if needs_processing "$PANEL_ID"; then
+        set +e
+        needs_processing "$PANEL_ID"
+        local needs_proc=$?
+        set -e
+        
+        if [[ $needs_proc -eq 0 ]]; then
             if process_panel "$PANEL_ID"; then
                 echo "✓ Panel $PANEL_ID processed"
-                ((successful++))
+                successful=$((successful + 1))
             else
                 echo "✗ Panel $PANEL_ID failed"
-                ((failed++))
+                failed=$((failed + 1))
             fi
         else
-            echo "Panel $PANEL_ID up to date"
-            ((skipped++))
+            echo "Panel $PANEL_ID already processed"
+            skipped=$((skipped + 1))
         fi
     else
         # All panels mode
@@ -178,10 +183,15 @@ main() {
             local panel_id=$(basename "$panel_dir")
             [[ ! "$panel_id" =~ ^[0-9]+$ ]] && continue
             
-            if needs_processing "$panel_id"; then
+            set +e
+            needs_processing "$panel_id"
+            local needs_proc=$?
+            set -e
+            
+            if [[ $needs_proc -eq 0 ]]; then
                 panels_to_process+=("$panel_id")
             else
-                ((skipped++))
+                skipped=$((skipped + 1))
             fi
         done
         
@@ -190,16 +200,23 @@ main() {
         # Process panels
         for panel_id in "${panels_to_process[@]}"; do
             if process_panel "$panel_id"; then
-                ((successful++))
+                successful=$((successful + 1))
                 echo "  ✓ Panel $panel_id"
             else
-                ((failed++))
+                failed=$((failed + 1))
                 echo "  ✗ Panel $panel_id"
             fi
         done
     fi
     
     echo "Gene processing completed: $successful successful, $skipped skipped, $failed failed"
+    
+    # Exit with appropriate code
+    if [[ $failed -gt 0 ]]; then
+        exit 1
+    else
+        exit 0
+    fi
 }
 
 # Run main
