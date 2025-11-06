@@ -55,8 +55,8 @@ needs_update() {
     
     local last_version=$(cat "$panel_dir/version_created.txt" 2>/dev/null || echo "")
     [[ "$current_version" > "$last_version" ]] && return 0
-    
-    log "Panel $panel_id up to date"
+
+    log "Genes of panel $panel_id already extracted"
     return 1
 }
 

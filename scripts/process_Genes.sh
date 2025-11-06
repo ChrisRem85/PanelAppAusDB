@@ -73,7 +73,7 @@ process_panel() {
     local json_dir="$genes_dir/json"
     local output_file="$genes_dir/${panel_id}.genes.tsv"
     
-    log "Processing panel $panel_id"
+    log "Processing genes of panel $panel_id"
     
     # Check for JSON files
     local json_files=($(find "$json_dir" -name "*.json" 2>/dev/null | sort))
