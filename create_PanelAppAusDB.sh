@@ -12,9 +12,7 @@ SKIP_GENES=0
 SKIP_STRS=0
 SKIP_REGIONS=0
 FORCE=0
-VERBOSE=0
 CREATE_SOMATIC_GENELISTS=0
-RETRY_ATTEMPTS=""
 
 # Simple logging
 log() {
@@ -37,19 +35,15 @@ OPTIONS:
   --data-path PATH      Data directory (default: ./data)
   --panel-id ID         Extract specific panel only
   --skip-genes          Skip gene data extraction
-  --skip-strs           Skip STR data extraction  
+  --skip-strs           Skip STR data extraction
   --skip-regions        Skip region data extraction
   --force               Force re-download all data
-  --verbose             Verbose output
   --create-somatic-genelists  Create somatic genelists too
-  --retries N           API retry attempts (default: 3)
-  --help                This help
-
-EXAMPLES:
-  $0                                    # Full extraction
-  $0 --create-somatic-genelists         # Full + somatic genelists
-  $0 --panel-id 6                       # Single panel
-  $0 --force --verbose                  # Force with verbose output
+  --help                This helpEXAMPLES:
+  ./create_PanelAppAusDB.sh                                    # Full extraction
+  ./create_PanelAppAusDB.sh --create-somatic-genelists         # Full + somatic genelists
+  ./create_PanelAppAusDB.sh --panel-id 6                       # Single panel
+  ./create_PanelAppAusDB.sh --force                            # Force re-download
 EOF
 }
 
@@ -62,9 +56,7 @@ while [[ $# -gt 0 ]]; do
         --skip-strs) SKIP_STRS=1; shift ;;
         --skip-regions) SKIP_REGIONS=1; shift ;;
         --force) FORCE=1; shift ;;
-        --verbose) VERBOSE=1; shift ;;
         --create-somatic-genelists) CREATE_SOMATIC_GENELISTS=1; shift ;;
-        --retries) RETRY_ATTEMPTS="$2"; shift 2 ;;
         --help|-h) usage; exit 0 ;;
         *) error "Unknown option: $1" ;;
     esac
@@ -101,9 +93,28 @@ run_script() {
 build_args() {
     local args=("--data-path" "$DATA_PATH")
     [[ $FORCE -eq 1 ]] && args+=("--force")
-    [[ $VERBOSE -eq 1 ]] && args+=("--verbose")
     [[ -n "$PANEL_ID" ]] && args+=("--panel-id" "$PANEL_ID")
-    [[ -n "$RETRY_ATTEMPTS" ]] && args+=("--retries" "$RETRY_ATTEMPTS")
+    echo "${args[@]}"
+}
+
+# Build arguments for panel list
+build_panel_list_args() {
+    local args=("--data-path" "$DATA_PATH")
+    echo "${args[@]}"
+}
+
+# Build arguments for extract/process scripts
+build_extract_args() {
+    local args=("--data-path" "$DATA_PATH")
+    [[ $FORCE -eq 1 ]] && args+=("--force")
+    [[ -n "$PANEL_ID" ]] && args+=("--panel-id" "$PANEL_ID")
+    echo "${args[@]}"
+}
+
+# Build arguments for merge/genelist scripts
+build_merge_args() {
+    local args=("--data-path" "$DATA_PATH")
+    [[ $FORCE -eq 1 ]] && args+=("--force")
     echo "${args[@]}"
 }
 
@@ -112,43 +123,45 @@ main() {
     log "Starting PanelApp Australia data extraction..."
     
     local success=true
-    local common_args=($(build_args))
+    local panel_list_args=($(build_panel_list_args))
+    local extract_args=($(build_extract_args))
+    local merge_args=($(build_merge_args))
     
     # Step 1: Extract panel list
-    if ! run_script "$SCRIPT_DIR/scripts/extract_PanelList.sh" "Panel List Extraction" false "${common_args[@]}"; then
+    if ! run_script "$SCRIPT_DIR/scripts/extract_PanelList.sh" "Panel List Extraction" false "${panel_list_args[@]}"; then
         error "Panel list extraction failed - cannot continue"
     fi
     
     # Step 2: Gene extraction pipeline
     if [[ $SKIP_GENES -eq 0 ]]; then
         # 2a: Extract genes
-        if ! run_script "$SCRIPT_DIR/scripts/extract_Genes.sh" "Gene Extraction" false "${common_args[@]}"; then
+        if ! run_script "$SCRIPT_DIR/scripts/extract_Genes.sh" "Gene Extraction" false "${extract_args[@]}"; then
             log "Gene extraction failed, continuing..."
             success=false
         fi
         
         # 2b: Process genes (JSON → TSV)
-        if ! run_script "$SCRIPT_DIR/scripts/process_Genes.sh" "Gene Processing" false "${common_args[@]}"; then
+        if ! run_script "$SCRIPT_DIR/scripts/process_Genes.sh" "Gene Processing" false "${extract_args[@]}"; then
             log "Gene processing failed, continuing..."
             success=false
         fi
         
         # 2c: Merge panels
-        if ! run_script "$SCRIPT_DIR/scripts/merge_Panels.sh" "Panel Merging" false "${common_args[@]}"; then
+        if ! run_script "$SCRIPT_DIR/scripts/merge_Panels.sh" "Panel Merging" false "${merge_args[@]}"; then
             log "Panel merging failed, continuing..."
             success=false
         fi
         
         # 2d: Create genelists (if genes.tsv exists)
         if [[ -f "$DATA_PATH/genes/genes.tsv" ]]; then
-            if ! run_script "$SCRIPT_DIR/scripts/create_Genelists.sh" "Genelist Creation" false "${common_args[@]}"; then
+            if ! run_script "$SCRIPT_DIR/scripts/create_Genelists.sh" "Genelist Creation" false "${merge_args[@]}"; then
                 log "Genelist creation failed, continuing..."
                 success=false
             fi
             
             # 2e: Create somatic genelists (optional)
             if [[ $CREATE_SOMATIC_GENELISTS -eq 1 ]]; then
-                if ! run_script "$SCRIPT_DIR/scripts/create_Somatic_genelists.sh" "Somatic Genelist Creation" false "${common_args[@]}"; then
+                if ! run_script "$SCRIPT_DIR/scripts/create_Somatic_genelists.sh" "Somatic Genelist Creation" false "${merge_args[@]}"; then
                     log "Somatic genelist creation failed, continuing..."
                     success=false
                 fi
@@ -163,12 +176,12 @@ main() {
     
     # Step 3: STR extraction (future)
     if [[ $SKIP_STRS -eq 0 ]]; then
-        run_script "$SCRIPT_DIR/scripts/extract_strs.sh" "STR Extraction" true "${common_args[@]}" || true
+        run_script "$SCRIPT_DIR/scripts/extract_strs.sh" "STR Extraction" true "${extract_args[@]}" || true
     fi
     
     # Step 4: Region extraction (future)  
     if [[ $SKIP_REGIONS -eq 0 ]]; then
-        run_script "$SCRIPT_DIR/scripts/extract_regions.sh" "Region Extraction" true "${common_args[@]}" || true
+        run_script "$SCRIPT_DIR/scripts/extract_regions.sh" "Region Extraction" true "${extract_args[@]}" || true
     fi
     
     # Summary

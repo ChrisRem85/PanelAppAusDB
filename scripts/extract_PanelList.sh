@@ -7,7 +7,6 @@ set -euo pipefail
 # Configuration
 BASE_URL="https://panelapp-aus.org/api/v1"
 DATA_PATH="./data"
-RETRY_ATTEMPTS=3
 
 # Simple logging
 log() {
@@ -24,7 +23,6 @@ usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
   --data-path PATH    Data directory (default: ./data)
-  --retries N         Retry attempts (default: 3)
   --help              This help
 EOF
 }
@@ -33,22 +31,10 @@ EOF
 while [[ $# -gt 0 ]]; do
     case $1 in
         --data-path) DATA_PATH="$2"; shift 2 ;;
-        --retries) RETRY_ATTEMPTS="$2"; shift 2 ;;
         --help|-h) usage; exit 0 ;;
         *) error "Unknown option: $1" ;;
     esac
 done
-
-# Retry with backoff
-retry() {
-    local cmd=("$@")
-    for i in $(seq 1 $RETRY_ATTEMPTS); do
-        if "${cmd[@]}"; then return 0; fi
-        [[ $i -eq $RETRY_ATTEMPTS ]] && return 1
-        log "Retry $i failed, waiting..."
-        sleep $((i * 2))
-    done
-}
 
 # Download panels with pagination
 download_panels() {
@@ -68,7 +54,7 @@ download_panels() {
         local output="$json_dir/panels_page_$page.json"
         
         log "Downloading page $page..."
-        if ! retry curl -s -f "$url" -o "$output"; then
+        if ! curl -s -f "$url" -o "$output"; then
             error "Failed to download page $page"
         fi
         

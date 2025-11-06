@@ -6,11 +6,9 @@ set -euo pipefail
 DATA_PATH="data"
 ENTITY_TYPE=""
 FORCE=0
-VERBOSE=0
 
 error_exit() { echo "ERROR: $1" >&2; exit 1; }
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $1"; }
-log_verbose() { [[ $VERBOSE -eq 1 ]] && log "VERBOSE: $1"; }
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -18,8 +16,7 @@ while [[ $# -gt 0 ]]; do
         --data-path) DATA_PATH="$2"; shift 2 ;;
         --entity-type) ENTITY_TYPE="$2"; shift 2 ;;
         --force) FORCE=1; shift ;;
-        --verbose) VERBOSE=1; shift ;;
-        --help|-h) echo "Usage: merge_panels.sh [--data-path PATH] [--entity-type TYPE] [--force] [--verbose]"; exit 0 ;;
+        --help|-h) echo "Usage: merge_panels.sh [--data-path PATH] [--entity-type TYPE] [--force]"; exit 0 ;;
         *) error_exit "Unknown option: $1" ;;
     esac
 done
@@ -58,12 +55,12 @@ merge_needed() {
         processed_ts=$(date -d "$processed_date" +%s 2>/dev/null) || continue
         
         if [[ $processed_ts -gt $last_merged_ts ]]; then
-            log_verbose "$entity_type merge needed: Panel $panel_id updated"
+            log "$entity_type merge needed: Panel $panel_id updated"
             return 0
         fi
     done
     
-    log_verbose "$entity_type is up to date"
+    log "$entity_type is up to date"
     return 1
 }
 
@@ -92,7 +89,7 @@ merge_entity_data() {
         if [[ -f "$tsv_path" && -s "$tsv_path" ]]; then
             tsv_files+=("$tsv_path")
             panel_ids+=("$panel_id")
-            log_verbose "Found $entity_type file for panel $panel_id"
+            log "Found $entity_type file for panel $panel_id"
         fi
     done
     
@@ -112,7 +109,7 @@ merge_entity_data() {
     for i in "${!tsv_files[@]}"; do
         local panel_id="${panel_ids[$i]}"
         local file_path="${tsv_files[$i]}"
-        log_verbose "Processing panel $panel_id"
+        log "Processing panel $panel_id"
         
         local line_number=0
         while IFS= read -r line; do
@@ -123,7 +120,7 @@ merge_entity_data() {
                     expected_header="$line"
                     echo -e "panel_id\t$line" >> "$temp_file"
                     header_written=1
-                    log_verbose "Header established from panel $panel_id"
+                    log "Header established from panel $panel_id"
                 else
                     local header
                     header=$(head -n1 "$file_path")

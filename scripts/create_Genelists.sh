@@ -5,19 +5,16 @@ set -euo pipefail
 
 DATA_PATH="data"
 FORCE=0
-VERBOSE=0
 
 error_exit() { echo "ERROR: $1" >&2; exit 1; }
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $1"; }
-log_verbose() { [[ $VERBOSE -eq 1 ]] && log "VERBOSE: $1"; }
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --data-path) DATA_PATH="$2"; shift 2 ;;
         --force) FORCE=1; shift ;;
-        --verbose) VERBOSE=1; shift ;;
-        --help|-h) echo "Usage: create_Genelists.sh [--data-path PATH] [--force] [--verbose]"; exit 0 ;;
+        --help|-h) echo "Usage: create_Genelists.sh [--data-path PATH] [--force]"; exit 0 ;;
         *) error_exit "Unknown option: $1" ;;
     esac
 done
@@ -68,7 +65,7 @@ create_genelist_files() {
     
     # Process Green genes (confidence_level = 3)
     if needs_update "$genes_file" "$green_file" "$version_file"; then
-        log_verbose "Processing Green genes (confidence_level = 3)"
+        log "Processing Green genes (confidence_level = 3)"
         awk -F'\t' 'NR > 1 && $4 == "3" && $3 != "" {
             print $3 "\t" "Paus:" $1 ".Green"
         }' "$genes_file" | sort -t$'\t' -k1,1 -k2,2 > "$green_file"
@@ -83,7 +80,7 @@ create_genelist_files() {
     
     # Process Amber genes (confidence_level = 2)
     if needs_update "$genes_file" "$amber_file" "$version_file"; then
-        log_verbose "Processing Amber genes (confidence_level = 2)"
+        log "Processing Amber genes (confidence_level = 2)"
         awk -F'\t' 'NR > 1 && $4 == "2" && $3 != "" {
             print $3 "\t" "Paus:" $1 ".Amber"
         }' "$genes_file" | sort -t$'\t' -k1,1 -k2,2 > "$amber_file"
@@ -115,7 +112,7 @@ create_genelist_files() {
     fi
     
     if [[ $simple_needs_update -eq 1 ]]; then
-        log_verbose "Creating simple combined genelist"
+        log "Creating simple combined genelist"
         {
             [[ -f "$green_file" ]] && awk -F'\t' '{print $1}' "$green_file"
             [[ -f "$amber_file" ]] && awk -F'\t' '{print $1}' "$amber_file"

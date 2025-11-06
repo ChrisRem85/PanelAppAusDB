@@ -7,12 +7,11 @@ set -euo pipefail
 # Configuration
 DATA_PATH="./data"
 PANEL_ID=""
-VERBOSE=0
 FORCE=0
 
 # Simple logging
 log() {
-    [[ $VERBOSE -eq 1 ]] && echo "[$(date '+%H:%M:%S')] $1" >&2
+    echo "[$(date '+%H:%M:%S')] $1" >&2
 }
 
 error() {
@@ -27,7 +26,6 @@ Usage: $0 [OPTIONS]
   --data-path PATH    Data directory (default: ./data)
   --panel-id ID       Process specific panel only
   --force             Force reprocessing
-  --verbose           Verbose output
   --help              This help
 EOF
 }
@@ -38,7 +36,6 @@ while [[ $# -gt 0 ]]; do
         --data-path) DATA_PATH="$2"; shift 2 ;;
         --panel-id) PANEL_ID="$2"; shift 2 ;;
         --force) FORCE=1; shift ;;
-        --verbose) VERBOSE=1; shift ;;
         --help|-h) usage; exit 0 ;;
         *) error "Unknown option: $1" ;;
     esac

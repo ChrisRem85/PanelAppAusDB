@@ -8,13 +8,11 @@ set -euo pipefail
 BASE_URL="https://panelapp-aus.org/api/v1"
 DATA_PATH="./data"
 PANEL_ID=""
-VERBOSE=0
 FORCE=0
-RETRY_ATTEMPTS=3
 
 # Simple logging
 log() {
-    [[ $VERBOSE -eq 1 ]] && echo "[$(date '+%H:%M:%S')] $1" >&2
+    echo "[$(date '+%H:%M:%S')] $1" >&2
 }
 
 error() {
@@ -29,8 +27,6 @@ Usage: $0 [OPTIONS]
   --data-path PATH    Data directory (default: ./data)
   --panel-id ID       Specific panel ID only
   --force             Force re-download
-  --verbose           Verbose output
-  --retries N         Retry attempts (default: 3)
   --help              This help
 EOF
 }
@@ -41,23 +37,10 @@ while [[ $# -gt 0 ]]; do
         --data-path) DATA_PATH="$2"; shift 2 ;;
         --panel-id) PANEL_ID="$2"; shift 2 ;;
         --force) FORCE=1; shift ;;
-        --verbose) VERBOSE=1; shift ;;
-        --retries) RETRY_ATTEMPTS="$2"; shift 2 ;;
         --help|-h) usage; exit 0 ;;
         *) error "Unknown option: $1" ;;
     esac
 done
-
-# Retry with backoff
-retry() {
-    local cmd=("$@")
-    for i in $(seq 1 $RETRY_ATTEMPTS); do
-        if "${cmd[@]}"; then return 0; fi
-        [[ $i -eq $RETRY_ATTEMPTS ]] && return 1
-        log "Retry $i failed, waiting..."
-        sleep $((i * 2))
-    done
-}
 
 # Check if panel needs update
 needs_update() {
@@ -97,7 +80,7 @@ download_genes() {
         local url="$BASE_URL/panels/$panel_id/genes/?page=$page"
         local output="$json_dir/genes_page_$page.json"
         
-        if ! retry curl -s -f "$url" -o "$output"; then
+        if ! curl -s -f "$url" -o "$output"; then
             error "Failed to download page $page for panel $panel_id"
         fi
         
@@ -121,11 +104,11 @@ main() {
     
     local panels_to_update=()
     local total=0
-    
-    # Process specific panel or all panels
+
+    # Extract specific panel or all panels
     if [[ -n "$PANEL_ID" ]]; then
         # Single panel mode
-        local panel_data=$(grep "^$PANEL_ID[[:space:]]" "$tsv_file" || true)
+        local panel_data=$(grep "^$PANEL_ID"$'\t' "$tsv_file" || true)
         [[ -z "$panel_data" ]] && error "Panel $PANEL_ID not found"
         
         IFS=$'\t' read -r id name version created <<< "$panel_data"
@@ -139,14 +122,19 @@ main() {
     fi
     
     # All panels mode - collect panels needing updates
-    while IFS=$'\t' read -r id name version created || [[ -n "$id" ]]; do
-        [[ "$id" == "id" ]] && continue  # Skip header
+    while read -r line; do
+        [[ "$line" == id* ]] && continue  # Skip header
+        
+        # Parse TSV line manually
+        id=$(echo "$line" | cut -f1)
+        name=$(echo "$line" | cut -f2)
+        version=$(echo "$line" | cut -f3)
+        created=$(echo "$line" | cut -f4)
+        
         [[ ! "$id" =~ ^[0-9]+$ ]] && continue  # Numeric IDs only
         
-        ((total++))
-        if needs_update "$id" "$created"; then
-            panels_to_update+=("$id|$name|$created")
-        fi
+        total=$((total + 1))
+        needs_update "$id" "$created" && panels_to_update+=("$id|$name|$created") || true
     done < "$tsv_file"
     
     echo "Found ${#panels_to_update[@]} panels to update (of $total total)"
@@ -155,8 +143,8 @@ main() {
     local count=0
     for panel_data in "${panels_to_update[@]}"; do
         IFS='|' read -r id name created <<< "$panel_data"
-        ((count++))
-        echo "[$count/${#panels_to_update[@]}] Processing panel $id"
+        count=$((count + 1))
+        echo "[$count/${#panels_to_update[@]}] Extracting genes for panel $id"
         
         if download_genes "$id" "$name" "$created"; then
             echo "  ✓ Success"
@@ -165,7 +153,7 @@ main() {
         fi
     done
     
-    echo "Completed: $count panels processed"
+    echo "Completed: Genes for $count panels extracted"
 }
 
 # Check dependencies
