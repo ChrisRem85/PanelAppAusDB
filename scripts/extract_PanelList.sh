@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Configuration
 BASE_URL="https://panelapp-aus.org/api/v1"
-DATA_PATH="./data"
+OUTPUT_DIR="./data"
 
 # Simple logging
 log() {
@@ -22,7 +22,7 @@ error() {
 usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
-  --data-path PATH    Data directory (default: ./data)
+  --output-dir PATH   Data directory (default: ./data)
   --help              This help
 EOF
 }
@@ -30,7 +30,7 @@ EOF
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --data-path) DATA_PATH="$2"; shift 2 ;;
+        --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
         --help|-h) usage; exit 0 ;;
         *) error "Unknown option: $1" ;;
     esac
@@ -38,7 +38,7 @@ done
 
 # Download panels with pagination
 download_panels() {
-    local panels_dir="$DATA_PATH/panels"
+    local panels_dir="$OUTPUT_DIR/panels"
     local json_dir="$panels_dir/json"
     
     log "Creating directory: $json_dir"
@@ -76,9 +76,9 @@ download_panels() {
 
 # Convert JSON to TSV
 convert_to_tsv() {
-    local panels_dir="$DATA_PATH/panels"
+    local panels_dir="$OUTPUT_DIR/panels"
     local json_dir="$panels_dir/json"
-    local panel_list_dir="$DATA_PATH/panel_list"
+    local panel_list_dir="$OUTPUT_DIR/panel_list"
     local output_file="$panel_list_dir/panel_list.tsv"
     
     log "Creating panel list directory"
@@ -122,7 +122,7 @@ main() {
     convert_to_tsv
     
     log "Panel list extraction completed successfully!"
-    log "Output directory: $DATA_PATH"
+    log "Output directory: $OUTPUT_DIR"
 }
 
 # Run main

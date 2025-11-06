@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DATA_PATH="./data"
+OUTPUT_DIR="./data"
 PANEL_ID=""
 SKIP_GENES=0
 SKIP_STRS=0
@@ -32,7 +32,7 @@ Usage: $0 [OPTIONS]
 Orchestrates complete PanelApp Australia data extraction process.
 
 OPTIONS:
-  --data-path PATH      Data directory (default: ./data)
+  --output-dir PATH     Data directory (default: ./data)
   --panel-id ID         Extract specific panel only
   --skip-genes          Skip gene data extraction
   --skip-strs           Skip STR data extraction
@@ -50,7 +50,7 @@ EOF
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --data-path) DATA_PATH="$2"; shift 2 ;;
+        --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
         --panel-id) PANEL_ID="$2"; shift 2 ;;
         --skip-genes) SKIP_GENES=1; shift ;;
         --skip-strs) SKIP_STRS=1; shift ;;
@@ -91,7 +91,7 @@ run_script() {
 
 # Build common arguments
 build_args() {
-    local args=("--data-path" "$DATA_PATH")
+    local args=("--output-dir" "$OUTPUT_DIR")
     [[ $FORCE -eq 1 ]] && args+=("--force")
     [[ -n "$PANEL_ID" ]] && args+=("--panel-id" "$PANEL_ID")
     echo "${args[@]}"
@@ -99,13 +99,13 @@ build_args() {
 
 # Build arguments for panel list
 build_panel_list_args() {
-    local args=("--data-path" "$DATA_PATH")
+    local args=("--output-dir" "$OUTPUT_DIR")
     echo "${args[@]}"
 }
 
 # Build arguments for extract/process scripts
 build_extract_args() {
-    local args=("--data-path" "$DATA_PATH")
+    local args=("--output-dir" "$OUTPUT_DIR")
     [[ $FORCE -eq 1 ]] && args+=("--force")
     [[ -n "$PANEL_ID" ]] && args+=("--panel-id" "$PANEL_ID")
     echo "${args[@]}"
@@ -113,7 +113,7 @@ build_extract_args() {
 
 # Build arguments for merge/genelist scripts
 build_merge_args() {
-    local args=("--data-path" "$DATA_PATH")
+    local args=("--output-dir" "$OUTPUT_DIR")
     [[ $FORCE -eq 1 ]] && args+=("--force")
     echo "${args[@]}"
 }
@@ -153,7 +153,7 @@ main() {
         fi
         
         # 2d: Create genelists (if genes.tsv exists)
-        if [[ -f "$DATA_PATH/genes/genes.tsv" ]]; then
+        if [[ -f "$OUTPUT_DIR/genes/genes.tsv" ]]; then
             if ! run_script "$SCRIPT_DIR/scripts/create_Genelists.sh" "Genelist Creation" false "${merge_args[@]}"; then
                 log "Genelist creation failed, continuing..."
                 success=false
@@ -186,7 +186,7 @@ main() {
     
     # Summary
     log "Data extraction completed $(if [[ "$success" == "true" ]]; then echo "successfully"; else echo "with warnings"; fi)"
-    log "Output directory: $DATA_PATH"
+    log "Output directory: $OUTPUT_DIR"
     
     # Status summary
     echo ""

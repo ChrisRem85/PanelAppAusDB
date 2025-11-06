@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Configuration
-DATA_PATH="./data"
+OUTPUT_DIR="./data"
 PANEL_ID=""
 FORCE=0
 
@@ -23,7 +23,7 @@ error() {
 usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
-  --data-path PATH    Data directory (default: ./data)
+  --output-dir PATH   Data directory (default: ./data)
   --panel-id ID       Process specific panel only
   --force             Force reprocessing
   --help              This help
@@ -33,7 +33,7 @@ EOF
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --data-path) DATA_PATH="$2"; shift 2 ;;
+        --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
         --panel-id) PANEL_ID="$2"; shift 2 ;;
         --force) FORCE=1; shift ;;
         --help|-h) usage; exit 0 ;;
@@ -44,7 +44,7 @@ done
 # Check if panel needs processing
 needs_processing() {
     local panel_id="$1"
-    local panel_dir="$DATA_PATH/panels/$panel_id"
+    local panel_dir="$OUTPUT_DIR/panels/$panel_id"
     local genes_dir="$panel_dir/genes"
     local tsv_file="$genes_dir/${panel_id}.genes.tsv"
     
@@ -68,7 +68,7 @@ needs_processing() {
 # Process panel genes
 process_panel() {
     local panel_id="$1"
-    local panel_dir="$DATA_PATH/panels/$panel_id"
+    local panel_dir="$OUTPUT_DIR/panels/$panel_id"
     local genes_dir="$panel_dir/genes"
     local json_dir="$genes_dir/json"
     local output_file="$genes_dir/${panel_id}.genes.tsv"
@@ -152,7 +152,7 @@ main() {
     # Determine panels to process
     if [[ -n "$PANEL_ID" ]]; then
         # Single panel mode
-        local panel_dir="$DATA_PATH/panels/$PANEL_ID"
+        local panel_dir="$OUTPUT_DIR/panels/$PANEL_ID"
         [[ ! -d "$panel_dir" ]] && error "Panel $PANEL_ID not found"
         
         if needs_processing "$PANEL_ID"; then
@@ -169,7 +169,7 @@ main() {
         fi
     else
         # All panels mode
-        local panels_dir="$DATA_PATH/panels"
+        local panels_dir="$OUTPUT_DIR/panels"
         [[ ! -d "$panels_dir" ]] && error "Panels directory not found: $panels_dir"
         
         # Find panel directories

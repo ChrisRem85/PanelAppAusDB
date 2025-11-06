@@ -3,8 +3,9 @@
 # PanelApp Australia Merge Script - Simplified
 set -euo pipefail
 
-DATA_PATH="data"
-ENTITY_TYPE=""
+# Configuration
+OUTPUT_DIR="data"
+ENTITY_TYPE="genes"
 FORCE=0
 
 error_exit() { echo "ERROR: $1" >&2; exit 1; }
@@ -13,10 +14,10 @@ log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $1"; }
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --data-path) DATA_PATH="$2"; shift 2 ;;
+        --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
         --entity-type) ENTITY_TYPE="$2"; shift 2 ;;
         --force) FORCE=1; shift ;;
-        --help|-h) echo "Usage: merge_panels.sh [--data-path PATH] [--entity-type TYPE] [--force]"; exit 0 ;;
+        --help|-h) echo "Usage: merge_panels.sh [--output-dir PATH] [--entity-type TYPE] [--force]"; exit 0 ;;
         *) error_exit "Unknown option: $1" ;;
     esac
 done
@@ -157,10 +158,10 @@ merge_entity_data() {
 # Main execution
 main() {
     log "Starting PanelApp Australia panel data merger"
-    [[ ! -d "$DATA_PATH" ]] && error_exit "Data path not found: $DATA_PATH"
+    [[ ! -d "$OUTPUT_DIR" ]] && error_exit "Data path not found: $OUTPUT_DIR"
     
-    DATA_PATH=$(realpath "$DATA_PATH")
-    log "Using data path: $DATA_PATH"
+    OUTPUT_DIR=$(realpath "$OUTPUT_DIR")
+    log "Using data path: $OUTPUT_DIR"
     
     local entity_types
     if [[ -n "$ENTITY_TYPE" ]]; then
@@ -171,8 +172,8 @@ main() {
     
     local success=1
     for entity_type in "${entity_types[@]}"; do
-        if merge_needed "$DATA_PATH" "$entity_type"; then
-            if ! merge_entity_data "$DATA_PATH" "$entity_type"; then
+        if merge_needed "$OUTPUT_DIR" "$entity_type"; then
+            if ! merge_entity_data "$OUTPUT_DIR" "$entity_type"; then
                 log "WARNING: $entity_type merge failed"
                 success=0
             fi

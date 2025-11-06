@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Configuration
-DATA_PATH="./data"
+OUTPUT_DIR="./data"
 FORCE=0
 VERBOSE=0
 
@@ -84,14 +84,14 @@ DESCRIPTION:
     - Simple genelist: ensembl_id only (one per line, sorted, unique)
 
 OPTIONS:
-    --data-path <path>  Path to data directory (default: ./data)
+    --output-dir <path> Path to data directory (default: ./data)
     --force             Force overwrite existing files
     --verbose           Enable verbose output
     --help              Show this help message
 
 EXAMPLES:
     ./create_Somatic_genelists.sh
-    ./create_Somatic_genelists.sh --data-path "/path/to/data" --verbose
+    ./create_Somatic_genelists.sh --output-dir "/path/to/data" --verbose
     ./create_Somatic_genelists.sh --force
 
 SOMATIC PANELS INCLUDED:
@@ -114,8 +114,8 @@ EOF
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --data-path)
-                DATA_PATH="$2"
+            --output-dir)
+                OUTPUT_DIR="$2"
                 shift 2
                 ;;
             --force)
@@ -392,22 +392,22 @@ EOF
 # Main execution function
 main() {
     log_message "Somatic genelist creation starting..."
-    log_verbose "Data path: $DATA_PATH"
+    log_verbose "Data path: $OUTPUT_DIR"
     log_verbose "Somatic panels: ${SOMATIC_PANEL_IDS[*]}"
     
     # Validate data path
-    if ! test_data_path "$DATA_PATH"; then
+    if ! test_data_path "$OUTPUT_DIR"; then
         return 1
     fi
     
     # Check if processing is needed
-    if ! test_processing_needed "$DATA_PATH" "$FORCE"; then
+    if ! test_processing_needed "$OUTPUT_DIR" "$FORCE"; then
         return 0
     fi
     
     # Set up paths
-    local genes_file="$DATA_PATH/genes/genes.tsv"
-    local output_dir="$DATA_PATH/genelists"
+    local genes_file="$OUTPUT_DIR/genes/genes.tsv"
+    local output_dir="$OUTPUT_DIR/genelists"
     local version_file="$output_dir/version_somatic_genelists.txt"
     
     # Create somatic genelist files

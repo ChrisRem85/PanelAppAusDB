@@ -6,7 +6,7 @@ set -euo pipefail
 
 # Configuration
 BASE_URL="https://panelapp-aus.org/api/v1"
-DATA_PATH="./data"
+OUTPUT_DIR="./data"
 PANEL_ID=""
 FORCE=0
 
@@ -24,7 +24,7 @@ error() {
 usage() {
     cat << EOF
 Usage: $0 [OPTIONS]
-  --data-path PATH    Data directory (default: ./data)
+  --output-dir PATH   Data directory (default: ./data)
   --panel-id ID       Specific panel ID only
   --force             Force re-download
   --help              This help
@@ -34,7 +34,7 @@ EOF
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --data-path) DATA_PATH="$2"; shift 2 ;;
+        --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
         --panel-id) PANEL_ID="$2"; shift 2 ;;
         --force) FORCE=1; shift ;;
         --help|-h) usage; exit 0 ;;
@@ -46,7 +46,7 @@ done
 needs_update() {
     local panel_id="$1"
     local current_version="$2"
-    local panel_dir="$DATA_PATH/panels/$panel_id"
+    local panel_dir="$OUTPUT_DIR/panels/$panel_id"
     
     [[ $FORCE -eq 1 ]] && return 0
     [[ ! -d "$panel_dir/genes/json" ]] && return 0
@@ -65,7 +65,7 @@ download_genes() {
     local panel_id="$1"
     local panel_name="$2"
     local version="$3"
-    local panel_dir="$DATA_PATH/panels/$panel_id"
+    local panel_dir="$OUTPUT_DIR/panels/$panel_id"
     local json_dir="$panel_dir/genes/json"
     
     log "Downloading genes for panel $panel_id"
@@ -99,7 +99,7 @@ download_genes() {
 
 # Main execution
 main() {
-    local tsv_file="$DATA_PATH/panel_list/panel_list.tsv"
+    local tsv_file="$OUTPUT_DIR/panel_list/panel_list.tsv"
     [[ ! -f "$tsv_file" ]] && error "Panel list not found: $tsv_file"
     
     local panels_to_update=()

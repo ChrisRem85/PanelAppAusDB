@@ -3,7 +3,7 @@
 # PanelApp Australia Gene to Genelists Converter - Simplified
 set -euo pipefail
 
-DATA_PATH="data"
+OUTPUT_DIR="data"
 FORCE=0
 
 error_exit() { echo "ERROR: $1" >&2; exit 1; }
@@ -12,9 +12,9 @@ log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $1"; }
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --data-path) DATA_PATH="$2"; shift 2 ;;
+        --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
         --force) FORCE=1; shift ;;
-        --help|-h) echo "Usage: create_Genelists.sh [--data-path PATH] [--force]"; exit 0 ;;
+        --help|-h) echo "Usage: create_Genelists.sh [--output-dir PATH] [--force]"; exit 0 ;;
         *) error_exit "Unknown option: $1" ;;
     esac
 done
@@ -132,12 +132,12 @@ create_genelist_files() {
 main() {
     log "PanelApp Australia Gene to Genelists Converter starting"
     
-    [[ ! -d "$DATA_PATH" ]] && error_exit "Data directory not found: $DATA_PATH"
+    [[ ! -d "$OUTPUT_DIR" ]] && error_exit "Data directory not found: $OUTPUT_DIR"
     
-    # Define paths
-    local genes_file="$DATA_PATH/genes/genes.tsv"
-    local version_file="$DATA_PATH/genes/version_merged.txt"
-    local output_dir="$DATA_PATH/genelists"
+    # File paths
+    local genes_file="$OUTPUT_DIR/genes/genes.tsv"
+    local version_file="$OUTPUT_DIR/genes/version_merged.txt"
+    local output_dir="$OUTPUT_DIR/genelists"
     
     # Check if any work needed
     if [[ $FORCE -eq 0 ]]; then
