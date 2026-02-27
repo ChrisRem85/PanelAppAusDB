@@ -76,12 +76,14 @@ download_panels() {
         
         log "Downloading page $page..."
         if [[ -n "$API_TOKEN" ]]; then
-            if ! curl -s -f -H "Authorization: $API_TOKEN" "$url" -o "$output"; then
-                error "Failed to download page $page"
+            http_code=$(curl -s -w "%{http_code}" -H "Authorization: $API_TOKEN" "$url" -o "$output")
+            if [[ "$http_code" != "200" ]]; then
+                error "Failed to download page $page (HTTP $http_code)"
             fi
         else
-            if ! curl -s -f "$url" -o "$output"; then
-                error "Failed to download page $page"
+            http_code=$(curl -s -w "%{http_code}" "$url" -o "$output")
+            if [[ "$http_code" != "200" ]]; then
+                error "Failed to download page $page (HTTP $http_code)"
             fi
         fi
         
