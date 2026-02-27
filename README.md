@@ -2,6 +2,19 @@
 
 A comprehensive toolkit for automatically extracting and processing data from the [PanelApp Australia API](https://panelapp-aus.org/api/docs/). This project provides both wrapper scripts for complete automation and individual scripts for fine-grained control.
 
+## 🔑 API Token Required
+
+**PanelApp Australia requires an API token for automated access.**
+
+To get your API token:
+1. Contact PanelApp Australia at their [contact page](https://panelapp-aus.org/about/contact/)
+2. Explain your use case (research, clinical, etc.)
+3. They will provide you with an authorization token
+
+Once you have your token, see the **Configuration** section below for setup instructions.
+
+This project includes built-in rate limiting and secure token storage to be respectful of their infrastructure.
+
 ## 🚀 Quick Start
 
 ### Complete Data Extraction (Recommended)
@@ -73,6 +86,43 @@ cd PanelAppAusDB
 **Dependencies:**
 - **Windows**: No additional setup required
 - **Linux/macOS**: Install `jq` if not available (`sudo apt-get install jq` or `brew install jq`)
+
+### ⚙️ Configuration (Required Before First Use)
+
+**API Token Setup:**
+
+1. **Copy the configuration template:**
+   ```powershell
+   # Windows PowerShell
+   Copy-Item scripts\config.ps1.template scripts\config.ps1
+   ```
+   ```bash
+   # Linux/macOS/WSL
+   cp scripts/config.sh.template scripts/config.sh
+   ```
+
+2. **Edit the config file** with your API token:
+   - Windows: Edit `scripts/config.ps1`
+   - Linux/macOS: Edit `scripts/config.sh`
+
+3. **Add your API token** (obtained from PanelApp Australia):
+   ```powershell
+   # PowerShell
+   $APIToken = "your-api-token-here"
+   ```
+   ```bash
+   # Bash
+   API_TOKEN="your-api-token-here"
+   ```
+
+4. **(Optional)** Update your contact information:
+   ```powershell
+   $UserAgent = "PanelAppAusDB-Extractor/1.0 (GitHub:ChrisRem85/PanelAppAusDB; your.email@institution.edu)"
+   ```
+
+✅ **Your token is safe:** Config files are already in `.gitignore` and won't be committed to Git.
+
+📖 **See [scripts/README.md](scripts/README.md) for detailed configuration options.**
 
 ## 📖 Usage Guide
 

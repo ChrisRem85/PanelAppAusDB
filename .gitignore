@@ -7,6 +7,10 @@ tests/
 # Extraction history - tracks version dates for incremental updates
 extraction_history.json
 
+# API Configuration - contains sensitive API tokens
+scripts/config.ps1
+scripts/config.sh
+
 # Python
 __pycache__/
 *.py[cod]

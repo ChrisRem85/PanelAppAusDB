@@ -13,6 +13,21 @@ $APIVersion = "v1"
 $SwaggerURL = "https://panelapp-aus.org/api/docs/?format=openapi"
 $ExpectedAPIVersion = "v1"
 
+# Load API configuration from config file
+$ConfigFile = Join-Path $PSScriptRoot "config.ps1"
+if (Test-Path $ConfigFile) {
+    . $ConfigFile
+    Write-Host "Loaded configuration from: $ConfigFile" -ForegroundColor Green
+} else {
+    Write-Host "WARNING: Config file not found: $ConfigFile" -ForegroundColor Yellow
+    Write-Host "Please copy config.ps1.template to config.ps1 and add your API token" -ForegroundColor Yellow
+    
+    # Fallback to default values
+    $APIToken = ""  # No token
+    $UserAgent = "PanelAppAusDB-Extractor/1.0 (GitHub:ChrisRem85/PanelAppAusDB)"
+    $RequestDelayMs = 500
+}
+
 # Enable TLS 1.2 for web requests
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -92,7 +107,11 @@ function Test-APIVersion {
     Write-Log "Checking API version..."
     
     try {
-        $response = Invoke-RestMethod -Uri $SwaggerURL -Method Get -ErrorAction Stop
+        $headers = @{ "User-Agent" = $UserAgent }
+        if ($APIToken) {
+            $headers["Authorization"] = $APIToken
+        }
+        $response = Invoke-RestMethod -Uri $SwaggerURL -Method Get -Headers $headers -ErrorAction Stop
         
         $apiVersion = $response.info.version
         
@@ -132,7 +151,16 @@ function Get-PanelData {
         $responseFile = Join-Path $OutputDir "panel_list\json\panels_page_$page.json"
         
         try {
-            $response = Invoke-RestMethod -Uri $nextURL -Method Get -ErrorAction Stop
+            # Add delay to reduce API load (skip for first page)
+            if ($page -gt 1) {
+                Start-Sleep -Milliseconds $RequestDelayMs
+            }
+            
+            $headers = @{ "User-Agent" = $UserAgent }
+            if ($APIToken) {
+                $headers["Authorization"] = $APIToken
+            }
+            $response = Invoke-RestMethod -Uri $nextURL -Method Get -Headers $headers -ErrorAction Stop
             
             # Save response to file
             # Save response to file with Unix newlines

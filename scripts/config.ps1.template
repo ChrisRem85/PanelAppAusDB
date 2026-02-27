@@ -1,0 +1,15 @@
+# PanelApp Australia API Configuration
+# This file contains your API credentials and should NOT be committed to version control
+
+# API Token from PanelApp Australia
+# Get your token from: https://panelapp-aus.org/
+$APIToken = ""  # Enter your API token here
+
+# User-Agent identification (optional but recommended)
+# Replace with your contact information
+$UserAgent = "PanelAppAusDB-Extractor/1.0 (GitHub:ChrisRem85/PanelAppAusDB; your.email@institution.edu)"
+
+# Rate limiting - delay between API requests in milliseconds
+# Default: 500ms (0.5 seconds)
+# Increase if you want to be more conservative: 1000 (1 second), 2000 (2 seconds), etc.
+$RequestDelayMs = 500

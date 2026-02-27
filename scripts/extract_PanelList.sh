@@ -8,6 +8,23 @@ set -euo pipefail
 BASE_URL="https://panelapp-aus.org/api/v1"
 OUTPUT_DIR="./data"
 
+# Load API configuration from config file
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/config.sh"
+
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+    echo "[INFO] Loaded configuration from: $CONFIG_FILE"
+else
+    echo "[WARNING] Config file not found: $CONFIG_FILE"
+    echo "[WARNING] Please copy config.sh.template to config.sh and add your API token"
+    
+    # Fallback to default values
+    API_TOKEN=""  # No token
+    USER_AGENT="PanelAppAusDB-Extractor/1.0 (GitHub:ChrisRem85/PanelAppAusDB)"
+    REQUEST_DELAY=0.5
+fi
+
 # Simple logging
 log() {
     echo "[$(date '+%H:%M:%S')] $1"
@@ -53,9 +70,20 @@ download_panels() {
         local url="$BASE_URL/panels/?page=$page"
         local output="$json_dir/panels_page_$page.json"
         
+        # Add delay to reduce API load (skip for first page)
+        if [[ $page -gt 1 ]]; then
+            sleep "$REQUEST_DELAY"
+        fi
+        
         log "Downloading page $page..."
-        if ! curl -s -f "$url" -o "$output"; then
-            error "Failed to download page $page"
+        if [[ -n "$API_TOKEN" ]]; then
+            if ! curl -s -f -A "$USER_AGENT" -H "Authorization: $API_TOKEN" "$url" -o "$output"; then
+                error "Failed to download page $page"
+            fi
+        else
+            if ! curl -s -f -A "$USER_AGENT" "$url" -o "$output"; then
+                error "Failed to download page $page"
+            fi
         fi
         
         # Count panels in this page
