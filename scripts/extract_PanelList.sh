@@ -22,7 +22,7 @@ else
     # Fallback to default values
     API_TOKEN=""  # No token
     USER_AGENT="PanelAppAusDB-Extractor/1.0 (GitHub:ChrisRem85/PanelAppAusDB)"
-    REQUEST_DELAY=0.5
+    REQUEST_DELAY=1.0
 fi
 
 # Simple logging

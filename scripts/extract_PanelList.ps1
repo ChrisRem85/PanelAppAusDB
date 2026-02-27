@@ -24,8 +24,7 @@ if (Test-Path $ConfigFile) {
     
     # Fallback to default values
     $APIToken = ""  # No token
-    $UserAgent = "PanelAppAusDB-Extractor/1.0 (GitHub:ChrisRem85/PanelAppAusDB)"
-    $RequestDelayMs = 500
+    $RequestDelayMs = 1000
 }
 
 # Enable TLS 1.2 for web requests
@@ -107,7 +106,7 @@ function Test-APIVersion {
     Write-Log "Checking API version..."
     
     try {
-        $headers = @{ "User-Agent" = $UserAgent }
+        $headers = @{}
         if ($APIToken) {
             $headers["Authorization"] = $APIToken
         }
@@ -156,7 +155,7 @@ function Get-PanelData {
                 Start-Sleep -Milliseconds $RequestDelayMs
             }
             
-            $headers = @{ "User-Agent" = $UserAgent }
+            $headers = @{}
             if ($APIToken) {
                 $headers["Authorization"] = $APIToken
             }
