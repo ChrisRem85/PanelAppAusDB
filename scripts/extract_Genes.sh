@@ -23,7 +23,6 @@ else
     
     # Fallback to default values
     API_TOKEN=""  # No token
-    USER_AGENT="PanelAppAusDB-Extractor/1.0 (GitHub:ChrisRem85/PanelAppAusDB)"
     REQUEST_DELAY=1.0
 fi
 
@@ -103,11 +102,11 @@ download_genes() {
         fi
         
         if [[ -n "$API_TOKEN" ]]; then
-            if ! curl -s -f -A "$USER_AGENT" -H "Authorization: $API_TOKEN" "$url" -o "$output"; then
+            if ! curl -s -f -H "Authorization: $API_TOKEN" "$url" -o "$output"; then
                 error "Failed to download page $page for panel $panel_id"
             fi
         else
-            if ! curl -s -f -A "$USER_AGENT" "$url" -o "$output"; then
+            if ! curl -s -f "$url" -o "$output"; then
                 error "Failed to download page $page for panel $panel_id"
             fi
         fi
