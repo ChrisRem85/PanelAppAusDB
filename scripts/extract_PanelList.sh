@@ -22,7 +22,6 @@ else
     # Fallback to default values
     API_TOKEN=""  # No token
     REQUEST_DELAY=1.0
-    USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 fi
 
 # Simple logging
@@ -77,12 +76,12 @@ download_panels() {
         
         log "Downloading page $page..."
         if [[ -n "$API_TOKEN" ]]; then
-            http_code=$(curl -s -w "%{http_code}" -A "$USER_AGENT" -H "Authorization: $API_TOKEN" "$next_url" -o "$output")
+            http_code=$(curl -s -w "%{http_code}" -H "Authorization: $API_TOKEN" "$next_url" -o "$output")
             if [[ "$http_code" != "200" ]]; then
                 error "Failed to download page $page (HTTP $http_code)"
             fi
         else
-            http_code=$(curl -s -w "%{http_code}" -A "$USER_AGENT" "$next_url" -o "$output")
+            http_code=$(curl -s -w "%{http_code}" "$next_url" -o "$output")
             if [[ "$http_code" != "200" ]]; then
                 error "Failed to download page $page (HTTP $http_code)"
             fi
