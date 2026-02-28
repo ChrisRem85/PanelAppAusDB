@@ -103,12 +103,12 @@ download_genes() {
         fi
         
         if [[ -n "$API_TOKEN" ]]; then
-            http_code=$(curl -s -w "%{http_code}" -H "Authorization: $API_TOKEN" "$next_url" -o "$output")
+            http_code=$(curl -s -w "%{http_code}" -A "" -H "Authorization: $API_TOKEN" "$next_url" -o "$output")
             if [[ "$http_code" != "200" ]]; then
                 error "Failed to download page $page for panel $panel_id (HTTP $http_code)"
             fi
         else
-            http_code=$(curl -s -w "%{http_code}" "$next_url" -o "$output")
+            http_code=$(curl -s -w "%{http_code}" -A "" "$next_url" -o "$output")
             if [[ "$http_code" != "200" ]]; then
                 error "Failed to download page $page for panel $panel_id (HTTP $http_code)"
             fi
