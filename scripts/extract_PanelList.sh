@@ -22,6 +22,7 @@ else
     # Fallback to default values
     API_TOKEN=""  # No token
     REQUEST_DELAY=1.0
+    USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 fi
 
 # Simple logging
@@ -64,9 +65,9 @@ download_panels() {
     # Download pages
     local page=1
     local total_panels=0
+    local next_url="$BASE_URL/panels/"
     
-    while true; do
-        local url="$BASE_URL/panels/?page=$page"
+    while [[ -n "$next_url" ]]; do
         local output="$json_dir/panels_page_$page.json"
         
         # Add delay to reduce API load (skip for first page)
@@ -76,12 +77,12 @@ download_panels() {
         
         log "Downloading page $page..."
         if [[ -n "$API_TOKEN" ]]; then
-            http_code=$(curl -s -w "%{http_code}" -H "Authorization: $API_TOKEN" "$url" -o "$output")
+            http_code=$(curl -s -w "%{http_code}" -A "$USER_AGENT" -H "Authorization: $API_TOKEN" "$next_url" -o "$output")
             if [[ "$http_code" != "200" ]]; then
                 error "Failed to download page $page (HTTP $http_code)"
             fi
         else
-            http_code=$(curl -s -w "%{http_code}" "$url" -o "$output")
+            http_code=$(curl -s -w "%{http_code}" -A "$USER_AGENT" "$next_url" -o "$output")
             if [[ "$http_code" != "200" ]]; then
                 error "Failed to download page $page (HTTP $http_code)"
             fi
@@ -94,9 +95,9 @@ download_panels() {
         total_panels=$((total_panels + page_count))
         log "Page $page: $page_count panels (total: $total_panels)"
         
-        # Check for next page
-        local next_page=$(jq -r '.next // empty' "$output" 2>/dev/null || true)
-        [[ -z "$next_page" ]] && break
+        # Get next page URL from API response
+        next_url=$(jq -r '.next // empty' "$output" 2>/dev/null || true)
+        [[ -z "$next_url" ]] && break
         ((page++))
     done
     

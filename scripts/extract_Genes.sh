@@ -24,6 +24,7 @@ else
     # Fallback to default values
     API_TOKEN=""  # No token
     REQUEST_DELAY=1.0
+    USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 fi
 
 # Simple logging
@@ -92,8 +93,9 @@ download_genes() {
     
     # Download pages
     local page=1
-    while true; do
-        local url="$BASE_URL/panels/$panel_id/genes/?page=$page"
+    local next_url="$BASE_URL/panels/$panel_id/genes/"
+    
+    while [[ -n "$next_url" ]]; do
         local output="$json_dir/genes_page_$page.json"
         
         # Add delay to reduce API load (skip for first page)
@@ -102,20 +104,20 @@ download_genes() {
         fi
         
         if [[ -n "$API_TOKEN" ]]; then
-            http_code=$(curl -s -w "%{http_code}" -H "Authorization: $API_TOKEN" "$url" -o "$output")
+            http_code=$(curl -s -w "%{http_code}" -A "$USER_AGENT" -H "Authorization: $API_TOKEN" "$next_url" -o "$output")
             if [[ "$http_code" != "200" ]]; then
                 error "Failed to download page $page for panel $panel_id (HTTP $http_code)"
             fi
         else
-            http_code=$(curl -s -w "%{http_code}" "$url" -o "$output")
+            http_code=$(curl -s -w "%{http_code}" -A "$USER_AGENT" "$next_url" -o "$output")
             if [[ "$http_code" != "200" ]]; then
                 error "Failed to download page $page for panel $panel_id (HTTP $http_code)"
             fi
         fi
         
-        # Check if more pages exist
-        local next_page=$(jq -r '.next // empty' "$output" 2>/dev/null || true)
-        [[ -z "$next_page" ]] && break
+        # Get next page URL from API response
+        next_url=$(jq -r '.next // empty' "$output" 2>/dev/null || true)
+        [[ -z "$next_url" ]] && break
         ((page++))
     done
     
