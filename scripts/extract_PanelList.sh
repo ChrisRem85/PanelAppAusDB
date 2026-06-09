@@ -16,13 +16,18 @@ if [[ -f "$CONFIG_FILE" ]]; then
     source "$CONFIG_FILE"
     echo "[INFO] Loaded configuration from: $CONFIG_FILE"
 else
-    echo "[WARNING] Config file not found: $CONFIG_FILE"
-    echo "[WARNING] Please copy config.sh.template to config.sh and add your API token"
-    
-    # Fallback to default values
-    API_TOKEN=""  # No token
-    REQUEST_DELAY=1.0
+    echo "[ERROR] Config file not found: $CONFIG_FILE"
+    echo "[ERROR] Please copy config.sh.template to config.sh and add your API token"
+    exit 1
 fi
+
+if [[ -z "${API_TOKEN:-}" ]]; then
+    echo "[ERROR] API_TOKEN is not set in $CONFIG_FILE"
+    echo "[ERROR] Add your PanelApp API token to the API_TOKEN variable"
+    exit 1
+fi
+
+AUTH_HEADER="Authorization: Token $API_TOKEN"
 
 # Simple logging
 log() {
@@ -75,16 +80,9 @@ download_panels() {
         fi
         
         log "Downloading page $page..."
-        if [[ -n "$API_TOKEN" ]]; then
-            http_code=$(curl -s -w "%{http_code}" -A "" -H "Authorization: $API_TOKEN" "$next_url" -o "$output")
-            if [[ "$http_code" != "200" ]]; then
-                error "Failed to download page $page (HTTP $http_code)"
-            fi
-        else
-            http_code=$(curl -s -w "%{http_code}" -A "" "$next_url" -o "$output")
-            if [[ "$http_code" != "200" ]]; then
-                error "Failed to download page $page (HTTP $http_code)"
-            fi
+        http_code=$(curl -s -w "%{http_code}" -A "PanelAppAusDB/1.0" -H "$AUTH_HEADER" "$next_url" -o "$output")
+        if [[ "$http_code" != "200" ]]; then
+            error "Failed to download page $page (HTTP $http_code)"
         fi
         
         # Count panels in this page
